@@ -1,4 +1,4 @@
-use std::fs;
+use std::{collections::HashSet, fs};
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Debug)]
 enum Dir {
@@ -21,7 +21,7 @@ impl Dir {
     }
 }
 
-#[derive(PartialEq, Eq, Clone, Copy)]
+#[derive(PartialEq, Eq, Clone, Copy, Debug)]
 enum Pipe {
     Pipe((Dir, Dir)),
     Ground,
@@ -50,6 +50,16 @@ impl Pipe {
                     *d1
                 }
             }
+        }
+    }
+
+    fn solo_east_west_dir(&self) -> Option<Dir> {
+        match self {
+            Pipe::Pipe((Dir::N, Dir::E)) => Some(Dir::E),
+            Pipe::Pipe((Dir::N, Dir::W)) => Some(Dir::W),
+            Pipe::Pipe((Dir::S, Dir::E)) => Some(Dir::E),
+            Pipe::Pipe((Dir::S, Dir::W)) => Some(Dir::W),
+            _ => None,
         }
     }
 }
@@ -109,18 +119,26 @@ fn update_i_j(i: usize, j: usize, dir_to: Dir) -> (usize, usize) {
     (new_i, new_j)
 }
 
-fn traverse_pipes(pipes: &PipeGrid, start_i: usize, start_j: usize, mut dir_to: Dir) -> Vec<u64> {
+fn traverse_pipes(
+    pipes: &PipeGrid,
+    start_i: usize,
+    start_j: usize,
+    mut dir_to: Dir,
+) -> (Vec<u64>, HashSet<(usize, usize)>) {
+    let mut visited = HashSet::new();
+    visited.insert((start_i, start_j));
     let mut dists = vec![]; // leave off initial zero so that reversing it aligns the two vectors
     let mut counter = 1;
     let (mut i, mut j) = update_i_j(start_i, start_j, dir_to);
     while (i, j) != (start_i, start_j) {
+        visited.insert((i, j));
         dists.push(counter);
         counter += 1;
         let dir_from = dir_to.opposite();
         dir_to = pipes[i][j].where_to(dir_from);
         (i, j) = update_i_j(i, j, dir_to);
     }
-    dists
+    (dists, visited)
 }
 
 fn compute_1(contents: &String) -> u64 {
@@ -137,8 +155,8 @@ fn compute_1(contents: &String) -> u64 {
         };
         if DIRS
             .iter()
-            .filter(|d| **d != check_dir)
-            .map(|d| Pipe::new_pipe(*d, check_dir))
+            .filter(|d| **d != check_dir.opposite())
+            .map(|d| Pipe::new_pipe(*d, check_dir.opposite()))
             .any(|p| p == pipe_to_check)
         {
             dirs.push(check_dir);
@@ -150,11 +168,91 @@ fn compute_1(contents: &String) -> u64 {
     let dists_2 = traverse_pipes(&pipes, s_i, s_j, dirs[1]);
 
     *dists_1
+        .0
         .iter()
-        .zip(dists_2.iter().rev())
+        .zip(dists_2.0.iter().rev())
         .map(|(d1, d2)| std::cmp::min(d1, d2))
         .max()
         .unwrap()
+}
+
+fn compute_2(contents: String) -> u64 {
+    let (mut pipes, (s_i, s_j)) = parse_input(&contents);
+    // pipes.insert(0, vec![Pipe::Ground; pipes[0].len()]);
+    // let s_i = s_i + 1;
+
+    // Find the directions we can go to from the start.
+    let mut dirs = vec![];
+    for check_dir in DIRS {
+        let pipe_to_check = match check_dir {
+            Dir::N => pipes[maybe_minus_one(s_i)][s_j],
+            Dir::S => pipes[std::cmp::min(s_i + 1, pipes.len())][s_j],
+            Dir::E => pipes[s_i][std::cmp::min(s_j + 1, pipes[0].len())],
+            Dir::W => pipes[s_i][maybe_minus_one(s_j)],
+        };
+        if DIRS
+            .iter()
+            .filter(|d| **d != check_dir.opposite())
+            .map(|d| Pipe::new_pipe(*d, check_dir.opposite()))
+            .any(|p| p == pipe_to_check)
+        {
+            dirs.push(check_dir);
+        }
+    }
+    assert!(dirs.len() == 2);
+
+    let visited = traverse_pipes(&pipes, s_i, s_j, dirs[0]).1;
+
+    pipes[s_i][s_j] = Pipe::new_pipe(dirs[0], dirs[1]);
+
+    let mut contained_count = 0;
+    for i in 0..pipes.len() {
+        for j in 0..pipes[0].len() {
+            if !visited.contains(&(i, j)) {
+                let mut odd_intersrection_count = false;
+                let mut how_we_got_here: Option<Dir> = None;
+                // cast a vertical ray upwards from the location
+                // requires ugly bookkeeping to detect situations like
+                //
+                // --7.
+                // ..|.
+                // --J.
+                //   X
+                //
+                // which shouldn't count as intersecting a pipe when casting the ray from X
+                for k in 0..i {
+                    if visited.contains(&(k, j)) {
+                        let curr_pipes_east_west_dir = pipes[k][j].solo_east_west_dir();
+                        match how_we_got_here {
+                            Some(incoming_dir) => match curr_pipes_east_west_dir {
+                                Some(d) => {
+                                    if d != incoming_dir {
+                                        odd_intersrection_count = !odd_intersrection_count;
+                                    }
+                                    how_we_got_here = None;
+                                }
+                                None => {}
+                            },
+                            None => match curr_pipes_east_west_dir {
+                                Some(d) => {
+                                    how_we_got_here = Some(d);
+                                }
+                                None => {
+                                    odd_intersrection_count = !odd_intersrection_count;
+                                }
+                            },
+                        }
+                    } else {
+                        how_we_got_here = None;
+                    }
+                }
+                if odd_intersrection_count {
+                    contained_count += 1;
+                }
+            }
+        }
+    }
+    contained_count
 }
 
 fn main() {
@@ -165,7 +263,7 @@ fn main() {
     assert_eq!(6903, result);
     println!("part 1: {result}");
 
-    // let result = compute_2(contents);
-    // assert_eq!(973, result);
-    // println!("part 2: {result}");
+    let result = compute_2(contents);
+    assert_eq!(265, result);
+    println!("part 2: {result}");
 }
