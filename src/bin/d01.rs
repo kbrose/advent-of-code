@@ -4,13 +4,13 @@ fn get_number_1(line: &str) -> u64 {
     let mut first: char = '0';
     let mut second: char = '0';
     for c in line.chars() {
-        if ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'].contains(&c) {
+        if c.is_digit(10) {
             first = c;
             break;
         }
     }
     for c in line.chars().rev() {
-        if ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'].contains(&c) {
+        if c.is_digit(10) {
             second = c;
             break;
         }
