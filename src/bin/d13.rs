@@ -54,6 +54,43 @@ fn compute_1(contents: &String) -> usize {
     summand
 }
 
+fn diff_count(seq1: &Vec<bool>, seq2: &Vec<bool>) -> u32 {
+    seq1.iter()
+        .zip(seq2.iter())
+        .map(|(a, b)| (a != b) as u32)
+        .sum()
+}
+
+fn horizontal_almost_symmetry(pattern: &Pattern) -> Option<usize> {
+    for closest_row_above in 0..(pattern.len() - 1) {
+        if (0..closest_row_above + 1)
+            .rev()
+            .zip(closest_row_above + 1..pattern.len())
+            .map(|(row_above, row_below)| diff_count(&pattern[row_above], &pattern[row_below]))
+            .sum::<u32>()
+            == 1
+        {
+            return Some(closest_row_above + 1);
+        }
+    }
+    None
+}
+
+fn compute_2(contents: &String) -> usize {
+    let mut summand = 0;
+    for pattern in parse_input(contents) {
+        match horizontal_almost_symmetry(&pattern) {
+            Some(val) => {
+                summand += val * 100;
+            }
+            None => {
+                summand += horizontal_almost_symmetry(&transpose(&pattern)).unwrap();
+            }
+        }
+    }
+    summand
+}
+
 fn main() {
     let contents =
         fs::read_to_string("inputs/d13.txt").expect("Should have been able to read the file");
@@ -62,7 +99,7 @@ fn main() {
     assert_eq!(27502, result);
     println!("part 1: {result}");
 
-    // let result = compute_2(&contents);
-    // assert_eq!(3476169006222, result);
-    // println!("part 2: {result}");
+    let result = compute_2(&contents);
+    assert_eq!(31947, result);
+    println!("part 2: {result}");
 }
