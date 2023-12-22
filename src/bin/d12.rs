@@ -149,9 +149,8 @@ fn is_compatible(reference: &[Spring], candidate: &[Spring]) -> bool {
 // n is the number of possible solutions given springs[..j+1] and contiguous_counts[..i+1]
 // m is max({last index into springs whose value was fixed | all solutions up to i,j})
 //
-// Every # we encounter resets the tuple to (0, 0). TBH I don't remember why. I was in a sort
-// of fugue state after trying for a long time to create this dynamic programming solution.
-// I'm sure it was well reasoned at the time.
+// Every # we encounter resets the tuple to (0, 0) because any solutions that worked
+// up to this point in time will no longer be valid.
 //
 //   0        1        2        3        4        5        6        7        8        9        10       11
 //   .        ?        ?        ?        ?        ?        #        ?        ?        ?        ?        .
@@ -187,7 +186,8 @@ fn count_arrangements_2(springs: &Vec<Spring>, contiguous_counts: &Vec<usize>) -
             // can possibly feed into the current location's
             let lookback_index = j.checked_sub(*c).unwrap().checked_sub(1).unwrap();
             let start_index = matrix[i - 1][lookback_index].1;
-            let mut candidate_spring_seq = vec![Spring::Works; j - c - start_index];
+            let mut candidate_spring_seq =
+                vec![Spring::Works; j.checked_sub(*c).unwrap().checked_sub(start_index).unwrap()];
             for _ in 0..*c {
                 candidate_spring_seq.push(Spring::Broke);
             }
