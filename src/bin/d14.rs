@@ -22,14 +22,14 @@ impl std::fmt::Display for Rock {
     }
 }
 
-fn show(platform: &Platform) {
-    for row in platform {
-        for ele in row {
-            print!("{ele}");
-        }
-        println!("");
-    }
-}
+// fn show(platform: &Platform) {
+//     for row in platform {
+//         for ele in row {
+//             print!("{ele}");
+//         }
+//         println!("");
+//     }
+// }
 
 type Platform = Vec<Vec<Rock>>;
 
@@ -90,11 +90,109 @@ fn compute_1(contents: &String) -> usize {
     compute_load(&platform)
 }
 
-// fn compute_2(contents: &String) -> usize {
-//     let mut platform = parse_input(contents);
-//     tilt_north(&mut platform);
-//     compute_load(&platform)
-// }
+fn tilt_north_south(platform: &mut Platform, is_north: bool) {
+    let num_rows = platform.len();
+    let num_cols = platform[0].len();
+    for col_index in 0..num_cols {
+        let mut next_location = if is_north { 0 } else { num_rows - 1 };
+        for mut row_index in 0..num_rows {
+            if !is_north {
+                row_index = num_rows - row_index - 1;
+            }
+            match platform[row_index][col_index] {
+                Rock::Empty => {}
+                Rock::Square => {
+                    next_location = if is_north {
+                        row_index + 1
+                    } else {
+                        row_index - 1
+                    }
+                }
+                Rock::Round => {
+                    platform[row_index][col_index] = Rock::Empty;
+                    platform[next_location][col_index] = Rock::Round;
+                    next_location = if is_north {
+                        next_location + 1
+                    } else {
+                        next_location - 1
+                    };
+                }
+            }
+        }
+    }
+}
+
+fn tilt_east_west(platform: &mut Platform, is_west: bool) {
+    let num_rows = platform.len();
+    let num_cols = platform[0].len();
+    for row_index in 0..num_rows {
+        let mut next_location = if is_west { 0 } else { num_cols - 1 };
+        for mut col_index in 0..num_cols {
+            if !is_west {
+                col_index = num_cols - col_index - 1;
+            }
+            match platform[row_index][col_index] {
+                Rock::Empty => {}
+                Rock::Square => {
+                    next_location = if is_west {
+                        col_index + 1
+                    } else {
+                        col_index - 1
+                    }
+                }
+                Rock::Round => {
+                    platform[row_index][col_index] = Rock::Empty;
+                    platform[row_index][next_location] = Rock::Round;
+                    next_location = if is_west {
+                        next_location + 1
+                    } else {
+                        next_location - 1
+                    };
+                }
+            }
+        }
+    }
+}
+
+fn get_round_rock_locations(platform: &Platform) -> std::collections::HashSet<(usize, usize)> {
+    let mut locations = std::collections::HashSet::new();
+    for (i, row) in platform.iter().enumerate() {
+        for (j, element) in row.iter().enumerate() {
+            if element == &Rock::Round {
+                locations.insert((i, j));
+            }
+        }
+    }
+    locations
+}
+
+fn compute_2(contents: &String) -> usize {
+    let mut platform = parse_input(contents);
+    let mut locations = Vec::new();
+    let mut loads = Vec::new();
+    for iteration_count in 0..10000000 {
+        tilt_north_south(&mut platform, true);
+        tilt_east_west(&mut platform, true);
+        tilt_north_south(&mut platform, false);
+        tilt_east_west(&mut platform, false);
+        let curr_locations = get_round_rock_locations(&platform);
+        loads.push(compute_load(&platform));
+        if locations.contains(&curr_locations) {
+            let matching_iter_count = locations
+                .iter()
+                .enumerate()
+                .filter(|(_, l)| **l == curr_locations)
+                .next()
+                .unwrap()
+                .0;
+            let cycle_len = iteration_count - matching_iter_count;
+            let cycle_index = (1000000000 - matching_iter_count - 1) % cycle_len;
+            return loads[matching_iter_count + cycle_index];
+        }
+        locations.push(curr_locations);
+    }
+    compute_load(&platform)
+}
 
 fn main() {
     let contents =
@@ -104,7 +202,7 @@ fn main() {
     assert_eq!(106648, result);
     println!("part 1: {result}");
 
-    // let result = compute_2(&contents);
-    // assert_eq!(31947, result);
-    // println!("part 2: {result}");
+    let result = compute_2(&contents);
+    assert_eq!(87700, result);
+    println!("part 2: {result}");
 }
