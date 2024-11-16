@@ -29,7 +29,7 @@ impl FromStr for Dir {
     }
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
 struct Point {
     x: i64,
     y: i64,
@@ -59,6 +59,35 @@ impl FromStr for Instruction {
             .parse()
             .or(Err(ParseInstructionError))?;
         Ok(Instruction { dir, count })
+    }
+}
+
+struct Instruction2 {
+    dir: Dir,
+    count: i64,
+}
+
+impl FromStr for Instruction2 {
+    type Err = ParseInstructionError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let hex_string = s
+            .strip_suffix(")")
+            .ok_or(ParseInstructionError)?
+            .split("(#")
+            .skip(1)
+            .next()
+            .ok_or(ParseInstructionError)?;
+        assert_eq!(hex_string.len(), 6);
+        let count = i64::from_str_radix(&hex_string[0..5], 16).or(Err(ParseInstructionError))?;
+        let dir = match hex_string.chars().nth(5).unwrap() {
+            '0' => Dir::R,
+            '1' => Dir::D,
+            '2' => Dir::L,
+            '3' => Dir::U,
+            _ => return Err(ParseInstructionError),
+        };
+        Ok(Instruction2 { dir, count })
     }
 }
 
@@ -108,50 +137,145 @@ fn parse_input(contents: &String) -> Vec<Point> {
     vertices
 }
 
-fn is_interior(point: Point, vertices: &Vec<Point>) -> bool {
-    let mut intersection_counter = 0;
-    for (p1, p2) in vertices.iter().zip(vertices.iter().skip(1)) {
-        if min(p1.x, p2.x) > point.x {
-            continue;
-        }
-        if p1.x == p2.x {
-            // the y's vary
-            // First, test if the point lies on the line. That's a simple "yes".
-            if p1.x == point.x && (min(p1.y, p2.y) <= point.y && point.y <= max(p1.y, p2.y)) {
-                return true;
+fn parse_input_2(contents: &String) -> Vec<Point> {
+    let (mut x, mut y) = (0, 0);
+    let mut vertices = vec![Point { x: 0, y: 0 }];
+    for instruction_string in contents.trim().split('\n') {
+        let instruction: Instruction2 = instruction_string
+            .parse()
+            .expect("Malformed instruction string '{instruction_string}'");
+        match instruction.dir {
+            Dir::U => {
+                vertices.push(Point {
+                    x,
+                    y: y + instruction.count,
+                });
+                y += instruction.count;
             }
-            // Treat vertical line segments as bottom-open top-closed.
-            // This will handle situations like ,---' (intersects once) vs. ,---, (doesn't intersect)
-            if min(p1.y, p2.y) < point.y && point.y <= max(p1.y, p2.y) {
-                intersection_counter += 1;
+            Dir::D => {
+                vertices.push(Point {
+                    x,
+                    y: y - instruction.count,
+                });
+                y -= instruction.count;
             }
-        } else {
-            // the x's vary
-            // The only way we intersect is if we lie on top of the line.
-            // This case automatically count as an interior point, short circuit.
-            if p1.y == point.y && (min(p1.x, p2.x) <= point.x && point.x <= max(p1.x, p2.x)) {
-                return true;
+            Dir::L => {
+                vertices.push(Point {
+                    x: x - instruction.count,
+                    y,
+                });
+                x -= instruction.count;
+            }
+            Dir::R => {
+                vertices.push(Point {
+                    x: x + instruction.count,
+                    y,
+                });
+                x += instruction.count;
             }
         }
     }
-    intersection_counter % 2 == 1
+
+    // Make sure it begins and ends at (0, 0)
+    assert_eq!(vertices.first().unwrap(), &Point { x: 0, y: 0 });
+    assert_eq!(vertices.last().unwrap(), &Point { x: 0, y: 0 });
+
+    vertices
 }
 
 fn compute_1(contents: &String) -> u64 {
     let vertices = parse_input(contents);
 
-    let left_bound = vertices.iter().map(|p| p.x).min().unwrap();
-    let right_bound = vertices.iter().map(|p| p.x).max().unwrap();
+    let lower_bound = vertices.iter().map(|p| p.y).min().unwrap();
+    let upper_bound = vertices.iter().map(|p| p.y).max().unwrap();
+
+    let mut counter = 0;
+    for y in (lower_bound..upper_bound + 1).rev() {
+        counter += num_interior_points_on_horizontal(&vertices, y);
+    }
+    counter
+}
+
+fn num_interior_points_on_horizontal(vertices: &Vec<Point>, y: i64) -> u64 {
+    // println!("");
+    // All line segments that will intersect the horizontal ray at y
+    let mut relevant_line_segments: Vec<(&Point, &Point)> = vertices
+        .iter()
+        .zip(vertices.iter().skip(1))
+        .filter(|(p1, p2)| min(p1.y, p2.y) <= y && y <= max(p1.y, p2.y))
+        .collect();
+
+    // Order by x values
+    relevant_line_segments.sort_by(|ls1, ls2| (ls1.0.x + ls1.1.x).cmp(&(ls2.0.x + ls2.1.x)));
+
+    let mut counter = 0;
+    let mut parity_change_points: Vec<i64> = vec![];
+
+    for (i, (p1, p2)) in relevant_line_segments.iter().enumerate() {
+        if p1.x == p2.x {
+            // the y's vary
+            // Treat vertical line segments as bottom-open top-closed.
+            // This will handle situations like ,---' and '---, (parity should change)
+            // vs. ,---, and '---' (parity does not change):
+            //
+            // line segments :  |  ,---'  '---,  ,---,  '---'
+            // parity changes:  ^  ^          ^  ^   ^
+            if min(p1.y, p2.y) < y && y <= max(p1.y, p2.y) {
+                parity_change_points.push(p1.x);
+            }
+        } else {
+            // the x's vary
+
+            // This line must be in the interior of the relevant_line_segments array
+            // So doing i-1 and i+1 is safe.
+
+            let (prev_p1, prev_p2) = relevant_line_segments[i - 1];
+            let (next_p1, next_p2) = relevant_line_segments[i + 1];
+
+            let prev_came_from_up = prev_p1.y > y || prev_p2.y > y;
+            let next_goes_to_up = next_p1.y > y || next_p2.y > y;
+            let currently_exterior = parity_change_points.len() % 2 == 0;
+
+            // The only way we intersect is if we lie on top of the line.
+            // If we're already in the interior, then this line segment will
+            // get counted anyway. Otherwise, we'll need to adjust our counting:
+            //
+            //  ,---'  (off) |  '---,  (off) |  ,---,  (off) |  '---'  (off)
+            // iiooooo (n)   | oooooii (n)   | iioooii (n-1) | ooooooo (n+1)
+
+            if currently_exterior {
+                if (prev_came_from_up && !next_goes_to_up)
+                    || (!prev_came_from_up && next_goes_to_up)
+                {
+                    counter += p1.x.abs_diff(p2.x) as u64;
+                } else if !prev_came_from_up && !next_goes_to_up {
+                    counter += p1.x.abs_diff(p2.x) - 1 as u64;
+                } else if prev_came_from_up && next_goes_to_up {
+                    counter += p1.x.abs_diff(p2.x) + 1 as u64;
+                }
+            }
+        }
+    }
+    assert_eq!(parity_change_points.len() % 2, 0);
+    for (x1, x2) in parity_change_points
+        .iter()
+        .step_by(2)
+        .zip(parity_change_points.iter().skip(1).step_by(2))
+    {
+        counter += (*x2 - *x1) as u64 + 1;
+    }
+    counter
+}
+
+fn compute_2(contents: &String) -> u64 {
+    let vertices = parse_input_2(contents);
+
     let lower_bound = vertices.iter().map(|p| p.y).min().unwrap();
     let upper_bound = vertices.iter().map(|p| p.y).max().unwrap();
 
     let mut counter = 0;
     for y in lower_bound..upper_bound + 1 {
-        for x in left_bound..right_bound + 1 {
-            if is_interior(Point { x, y }, &vertices) {
-                counter += 1;
-            }
-        }
+        counter += num_interior_points_on_horizontal(&vertices, y);
     }
     counter
 }
@@ -164,7 +288,7 @@ fn main() {
     assert_eq!(53844, result);
     println!("part 1: {result}");
 
-    // let result = compute_2(&contents).expect("Unable to find solution for part 2!");
-    // assert_eq!(1027, result);
-    // println!("part 2: {result}");
+    let result = compute_2(&contents);
+    assert_eq!(42708339569950, result);
+    println!("part 2: {result}");
 }
