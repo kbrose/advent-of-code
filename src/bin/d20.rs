@@ -1,5 +1,5 @@
 use std::{
-    collections::{HashMap, VecDeque},
+    collections::{HashMap, HashSet, VecDeque},
     fs,
 };
 
@@ -133,10 +133,42 @@ impl ModuleInterface for Broadcast {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+struct Sink {
+    id: ModuleId,
+    name: String,
+    destinations: Vec<ModuleId>,
+}
+
+impl Sink {
+    fn new(id: ModuleId, name: String, _destinations: Vec<ModuleId>) -> Self {
+        Sink {
+            id,
+            name,
+            destinations: Vec::new(),
+        }
+    }
+}
+
+impl ModuleInterface for Sink {
+    fn process_pulse(&mut self, _sender_id: ModuleId, _pulse: Pulse) -> Option<Pulse> {
+        None
+    }
+
+    fn id(&self) -> ModuleId {
+        self.id
+    }
+
+    fn destinations(&self) -> &Vec<ModuleId> {
+        &self.destinations
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 enum ModuleKind {
     FlipFlop,
     Conjunction,
     Broadcast,
+    Sink,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -144,6 +176,7 @@ enum Module {
     FlipFlop(FlipFlop),
     Conjunction(Conjunction),
     Broadcast(Broadcast),
+    Sink(Sink),
 }
 
 impl Module {
@@ -161,6 +194,7 @@ impl Module {
             ModuleKind::Broadcast => {
                 Module::Broadcast(Broadcast::new(id, module_name, destinations))
             }
+            ModuleKind::Sink => Module::Sink(Sink::new(id, module_name, destinations)),
         }
     }
 
@@ -169,6 +203,7 @@ impl Module {
             Module::FlipFlop(flip_flop) => &flip_flop.name,
             Module::Conjunction(conjunction) => &conjunction.name,
             Module::Broadcast(broadcast) => &broadcast.name,
+            Module::Sink(sink) => &sink.name,
         }
     }
 }
@@ -179,6 +214,7 @@ impl ModuleInterface for Module {
             Module::FlipFlop(flip_flop) => flip_flop.process_pulse(sender_id, pulse),
             Module::Conjunction(conjunction) => conjunction.process_pulse(sender_id, pulse),
             Module::Broadcast(broadcast) => broadcast.process_pulse(sender_id, pulse),
+            Module::Sink(sink) => sink.process_pulse(sender_id, pulse),
         }
     }
 
@@ -187,6 +223,7 @@ impl ModuleInterface for Module {
             Module::FlipFlop(flip_flop) => flip_flop.id(),
             Module::Conjunction(conjunction) => conjunction.id(),
             Module::Broadcast(broadcast) => broadcast.id(),
+            Module::Sink(sink) => sink.id(),
         }
     }
 
@@ -195,6 +232,7 @@ impl ModuleInterface for Module {
             Module::FlipFlop(flip_flop) => flip_flop.destinations(),
             Module::Conjunction(conjunction) => conjunction.destinations(),
             Module::Broadcast(broadcast) => broadcast.destinations(),
+            Module::Sink(sink) => sink.destinations(),
         }
     }
 }
@@ -273,7 +311,17 @@ fn parse_input(contents: &String) -> (ModuleId, HashMap<ModuleId, Module>) {
                     ),
                 )
             }
+            ModuleKind::Sink => panic!("impossible!"),
         };
+    }
+    // Find all sinks, i.e. modules that only appear in outputs, and register them.
+    for (name, id) in name_to_id.iter() {
+        if !id_to_module.contains_key(id) {
+            id_to_module.insert(
+                *id,
+                Module::new(*id, name.clone(), Vec::new(), ModuleKind::Sink),
+            );
+        }
     }
     // Register all inputs for every conjunction module
     let mut incoming_connections: HashMap<ModuleId, Vec<ModuleId>> = HashMap::new();
@@ -305,10 +353,6 @@ fn push_button(broadcast_id: usize, modules: &mut HashMap<ModuleId, Module>) -> 
     let mut pulses: VecDeque<(ModuleId, ModuleId, Pulse)> = VecDeque::new();
     pulses.push_back((usize::MAX, broadcast_id, Pulse::Lo));
     lo_count += 1;
-    let mut id_to_name: HashMap<ModuleId, String> = HashMap::new();
-    for (id, module) in modules.iter() {
-        id_to_name.insert(*id, module.name().clone());
-    }
     while pulses.len() > 0 {
         let (source_id, destination_id, pulse) = pulses.pop_front().unwrap();
         modules.entry(destination_id).and_modify(|module| {
@@ -338,17 +382,80 @@ fn compute_1(contents: &String) -> u64 {
     lo_count * hi_count
 }
 
-// fn compute_2(contents: &String) -> u64 {}
+fn push_button_2(
+    broadcast_id: ModuleId,
+    rx_parent_id: ModuleId,
+    modules: &mut HashMap<ModuleId, Module>,
+) -> Option<ModuleId> {
+    let mut rx_grandparent_sending_high_pulse = None;
+    // (source_id, dest_id, pulse)
+    let mut pulses: VecDeque<(ModuleId, ModuleId, Pulse)> = VecDeque::new();
+    pulses.push_back((usize::MAX, broadcast_id, Pulse::Lo));
+    while pulses.len() > 0 {
+        let (source_id, destination_id, pulse) = pulses.pop_front().unwrap();
+        modules.entry(destination_id).and_modify(|module| {
+            if let Some(new_pulse) = module.process_pulse(source_id, pulse) {
+                for new_destination_id in module.destinations().iter() {
+                    if (*new_destination_id == rx_parent_id) & (new_pulse == Pulse::Hi) {
+                        rx_grandparent_sending_high_pulse = Some(module.id());
+                    }
+                    pulses.push_back((destination_id, *new_destination_id, new_pulse))
+                }
+            }
+        });
+    }
+    rx_grandparent_sending_high_pulse
+}
+
+fn compute_2(contents: &String) -> u64 {
+    let (broadcast_id, mut modules) = parse_input(contents);
+    let rx_id = *modules
+        .iter()
+        .filter(|(_, module)| module.name() == &"rx".to_string())
+        .map(|(id, _)| id)
+        .next()
+        .unwrap();
+    let rx_parent_id = *modules
+        .iter()
+        .filter(|(_, module)| module.destinations().contains(&rx_id))
+        .map(|(id, _)| id)
+        .next()
+        .unwrap();
+    let mut unhandled_rx_grandparents: HashSet<ModuleId> = HashSet::new();
+    let mut rx_grandparents_iters_to_high: Vec<u64> = Vec::new();
+    for module in modules.values() {
+        if module.destinations().contains(&rx_parent_id) {
+            unhandled_rx_grandparents.insert(module.id());
+        }
+    }
+    let mut counter: u64 = 0;
+    while unhandled_rx_grandparents.len() > 0 {
+        counter += 1;
+        if let Some(rx_grandparent_sending_high_pulse) =
+            push_button_2(broadcast_id, rx_parent_id, &mut modules)
+        {
+            if unhandled_rx_grandparents.contains(&rx_grandparent_sending_high_pulse) {
+                rx_grandparents_iters_to_high.push(counter);
+                unhandled_rx_grandparents.remove(&rx_grandparent_sending_high_pulse);
+            }
+        }
+    }
+    rx_grandparents_iters_to_high
+        .iter()
+        .map(|e| *e)
+        .reduce(|acc, e| acc * e)
+        .unwrap()
+}
 
 fn main() {
     let contents =
         fs::read_to_string("inputs/d20.txt").expect("Should have been able to read the file");
 
     let result = compute_1(&contents);
-    // assert_eq!(670984704, result);
+    assert_eq!(670984704, result);
     println!("part 1: {result}");
 
-    // let result = compute_2(&contents);
-    // assert_eq!(123972546935551, result);
-    // println!("part 2: {result}");
+    let result = compute_2(&contents);
+    assert_eq!(262775362119547, result);
+    println!("part 2: {result}");
 }
