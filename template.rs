@@ -17,7 +17,7 @@ fn compute_1(contents: &String) -> u64 {
 
 fn main() {
     let contents =
-        fs::read_to_string("inputs/d22.txt").expect("Should have been able to read the file");
+        fs::read_to_string("inputs/d00.txt").expect("Should have been able to read the file");
 
     let result = compute_1(&contents);
     // assert_eq!(670984704, result);
