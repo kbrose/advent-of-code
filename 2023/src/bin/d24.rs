@@ -164,7 +164,7 @@ fn intersection_point_2d(h1: &Hail, h2: &Hail) -> Option<(f64, f64)> {
     }
 }
 
-fn parse_input(contents: &String) -> Vec<Hail> {
+fn parse_input(contents: &str) -> Vec<Hail> {
     contents
         .trim()
         .split('\n')
@@ -177,13 +177,11 @@ fn parse_input(contents: &String) -> Vec<Hail> {
         .collect()
 }
 
-fn compute_1(contents: &String) -> u64 {
+fn compute_1(contents: &str) -> u64 {
     let hail_stones = parse_input(contents);
     let mut counter: u64 = 0;
-    for i in 0..hail_stones.len() {
-        let hail1 = &hail_stones[i];
-        for j in (i + 1)..hail_stones.len() {
-            let hail2 = &hail_stones[j];
+    for (i, hail1) in hail_stones.iter().enumerate() {
+        for hail2 in hail_stones[(i + 1)..].iter() {
             if hail1 != hail2 {
                 if let Some(xy) = intersection_point_2d(hail1, hail2) {
                     if (TEST_AREA[0] <= xy.0)
@@ -234,7 +232,7 @@ fn compute_1(contents: &String) -> u64 {
 //
 // n3 = (-(p2 x p3) • v2) / ((p2 x v3) • v2)
 // n2 = (-(p2 x p3) • v3) / ((v2 x p3) • v3)
-fn compute_2(contents: &String) -> i128 {
+fn compute_2(contents: &str) -> i128 {
     let hail_stones = parse_input(contents);
     assert!(hail_stones.len() >= 3);
     let hail2 = &hail_stones[1] - &hail_stones[0];

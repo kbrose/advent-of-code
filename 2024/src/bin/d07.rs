@@ -27,7 +27,7 @@ impl FromStr for Calibration {
 
 type Calibrations = Vec<Calibration>;
 
-fn parse_input(contents: &String) -> Calibrations {
+fn parse_input(contents: &str) -> Calibrations {
     contents
         .trim()
         .split('\n')
@@ -63,7 +63,7 @@ fn satisfiable(mut calibration: Calibration) -> bool {
     }
 }
 
-fn compute_1(contents: &String) -> i64 {
+fn compute_1(contents: &str) -> i64 {
     let calibrations = parse_input(contents);
     calibrations
         .into_iter()
@@ -113,7 +113,7 @@ fn satisfiable_2(mut calibration: Calibration) -> bool {
     }
 }
 
-fn compute_2(contents: &String) -> i64 {
+fn compute_2(contents: &str) -> i64 {
     let calibrations = parse_input(contents);
     calibrations
         .into_iter()

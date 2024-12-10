@@ -1,24 +1,24 @@
 use std::fs;
 
 #[derive(Debug, PartialEq, Eq)]
-enum XMAS {
+enum Xmas {
     X,
     M,
     A,
     S,
 }
 
-fn parse_input(contents: &String) -> Vec<Vec<XMAS>> {
+fn parse_input(contents: &str) -> Vec<Vec<Xmas>> {
     contents
         .trim()
         .split('\n')
         .map(|line| {
             line.chars()
                 .map(|c| match c {
-                    'X' => XMAS::X,
-                    'M' => XMAS::M,
-                    'A' => XMAS::A,
-                    'S' => XMAS::S,
+                    'X' => Xmas::X,
+                    'M' => Xmas::M,
+                    'A' => Xmas::A,
+                    'S' => Xmas::S,
                     _ => panic!("Unexpected character {c}!"),
                 })
                 .collect()
@@ -50,33 +50,33 @@ fn new_i_j(i: usize, j: usize, dir: &Dir) -> (usize, usize) {
     }
 }
 
-fn safe_check(grid: &Vec<Vec<XMAS>>, i: usize, j: usize, expected: &XMAS) -> bool {
+fn safe_check(grid: &[Vec<Xmas>], i: usize, j: usize, expected: &Xmas) -> bool {
     grid.get(i)
         .map(|row| row.get(j))
         .is_some_and(|maybe_value| maybe_value.is_some_and(|value| value == expected))
 }
 
-fn probe(grid: &Vec<Vec<XMAS>>, mut i: usize, mut j: usize, dir: &Dir) -> bool {
+fn probe(grid: &[Vec<Xmas>], mut i: usize, mut j: usize, dir: &Dir) -> bool {
     (i, j) = new_i_j(i, j, dir);
-    if !safe_check(grid, i, j, &XMAS::M) {
+    if !safe_check(grid, i, j, &Xmas::M) {
         return false;
     }
     (i, j) = new_i_j(i, j, dir);
-    if !safe_check(grid, i, j, &XMAS::A) {
+    if !safe_check(grid, i, j, &Xmas::A) {
         return false;
     }
     (i, j) = new_i_j(i, j, dir);
-    if !safe_check(grid, i, j, &XMAS::S) {
+    if !safe_check(grid, i, j, &Xmas::S) {
         return false;
     }
 
     true
 }
 
-fn compute_1(contents: &String) -> u64 {
+fn compute_1(contents: &str) -> u64 {
     let grid = parse_input(contents);
     let mut counter = 0;
-    let dirs = vec![
+    let dirs = [
         Dir::Left,
         Dir::UpLeft,
         Dir::Up,
@@ -88,9 +88,9 @@ fn compute_1(contents: &String) -> u64 {
     ];
     for i in 0..grid.len() {
         for j in 0..grid[i].len() {
-            if grid[i][j] == XMAS::X {
+            if grid[i][j] == Xmas::X {
                 for dir in dirs.iter() {
-                    if probe(&grid, i, j, &dir) {
+                    if probe(&grid, i, j, dir) {
                         counter += 1;
                     }
                 }
@@ -100,32 +100,25 @@ fn compute_1(contents: &String) -> u64 {
     counter
 }
 
-fn probe_2(grid: &Vec<Vec<XMAS>>, i: usize, j: usize) -> bool {
-    if (safe_check(grid, i - 1, j - 1, &XMAS::M) && safe_check(grid, i + 1, j + 1, &XMAS::S))
-        || (safe_check(grid, i - 1, j - 1, &XMAS::S) && safe_check(grid, i + 1, j + 1, &XMAS::M))
+fn probe_2(grid: &[Vec<Xmas>], i: usize, j: usize) -> bool {
+    if (safe_check(grid, i - 1, j - 1, &Xmas::M) && safe_check(grid, i + 1, j + 1, &Xmas::S))
+        || (safe_check(grid, i - 1, j - 1, &Xmas::S) && safe_check(grid, i + 1, j + 1, &Xmas::M))
     {
-        if (safe_check(grid, i - 1, j + 1, &XMAS::M) && safe_check(grid, i + 1, j - 1, &XMAS::S))
-            || (safe_check(grid, i - 1, j + 1, &XMAS::S)
-                && safe_check(grid, i + 1, j - 1, &XMAS::M))
-        {
-            true
-        } else {
-            false
-        }
+        (safe_check(grid, i - 1, j + 1, &Xmas::M) && safe_check(grid, i + 1, j - 1, &Xmas::S))
+            || (safe_check(grid, i - 1, j + 1, &Xmas::S)
+                && safe_check(grid, i + 1, j - 1, &Xmas::M))
     } else {
         false
     }
 }
 
-fn compute_2(contents: &String) -> u64 {
+fn compute_2(contents: &str) -> u64 {
     let grid = parse_input(contents);
     let mut counter = 0;
     for i in 0..grid.len() {
         for j in 0..grid[i].len() {
-            if grid[i][j] == XMAS::A {
-                if probe_2(&grid, i, j) {
-                    counter += 1;
-                }
+            if grid[i][j] == Xmas::A && probe_2(&grid, i, j) {
+                counter += 1;
             }
         }
     }

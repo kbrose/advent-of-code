@@ -50,12 +50,12 @@ impl FromStr for Instruction {
         let mut split = s.split_whitespace();
         let dir = split
             .next()
-            .ok_or_else(|| ParseInstructionError)?
+            .ok_or(ParseInstructionError)?
             .parse()
             .or(Err(ParseInstructionError))?;
         let count = split
             .next()
-            .ok_or_else(|| ParseInstructionError)?
+            .ok_or(ParseInstructionError)?
             .parse()
             .or(Err(ParseInstructionError))?;
         Ok(Instruction { dir, count })
@@ -75,8 +75,7 @@ impl FromStr for Instruction2 {
             .strip_suffix(")")
             .ok_or(ParseInstructionError)?
             .split("(#")
-            .skip(1)
-            .next()
+            .nth(1)
             .ok_or(ParseInstructionError)?;
         assert_eq!(hex_string.len(), 6);
         let count = i64::from_str_radix(&hex_string[0..5], 16).or(Err(ParseInstructionError))?;
@@ -91,7 +90,7 @@ impl FromStr for Instruction2 {
     }
 }
 
-fn parse_input(contents: &String) -> Vec<Point> {
+fn parse_input(contents: &str) -> Vec<Point> {
     let (mut x, mut y) = (0, 0);
     let mut vertices = vec![Point { x: 0, y: 0 }];
     for instruction_string in contents.trim().split('\n') {
@@ -137,7 +136,7 @@ fn parse_input(contents: &String) -> Vec<Point> {
     vertices
 }
 
-fn parse_input_2(contents: &String) -> Vec<Point> {
+fn parse_input_2(contents: &str) -> Vec<Point> {
     let (mut x, mut y) = (0, 0);
     let mut vertices = vec![Point { x: 0, y: 0 }];
     for instruction_string in contents.trim().split('\n') {
@@ -183,7 +182,7 @@ fn parse_input_2(contents: &String) -> Vec<Point> {
     vertices
 }
 
-fn compute_1(contents: &String) -> u64 {
+fn compute_1(contents: &str) -> u64 {
     let vertices = parse_input(contents);
 
     let lower_bound = vertices.iter().map(|p| p.y).min().unwrap();
@@ -196,7 +195,7 @@ fn compute_1(contents: &String) -> u64 {
     counter
 }
 
-fn num_interior_points_on_horizontal(vertices: &Vec<Point>, y: i64) -> u64 {
+fn num_interior_points_on_horizontal(vertices: &[Point], y: i64) -> u64 {
     // println!("");
     // All line segments that will intersect the horizontal ray at y
     let mut relevant_line_segments: Vec<(&Point, &Point)> = vertices
@@ -247,11 +246,11 @@ fn num_interior_points_on_horizontal(vertices: &Vec<Point>, y: i64) -> u64 {
                 if (prev_came_from_up && !next_goes_to_up)
                     || (!prev_came_from_up && next_goes_to_up)
                 {
-                    counter += p1.x.abs_diff(p2.x) as u64;
+                    counter += p1.x.abs_diff(p2.x);
                 } else if !prev_came_from_up && !next_goes_to_up {
-                    counter += p1.x.abs_diff(p2.x) - 1 as u64;
+                    counter += p1.x.abs_diff(p2.x) - 1_u64;
                 } else if prev_came_from_up && next_goes_to_up {
-                    counter += p1.x.abs_diff(p2.x) + 1 as u64;
+                    counter += p1.x.abs_diff(p2.x) + 1_u64;
                 }
             }
         }
@@ -267,7 +266,7 @@ fn num_interior_points_on_horizontal(vertices: &Vec<Point>, y: i64) -> u64 {
     counter
 }
 
-fn compute_2(contents: &String) -> u64 {
+fn compute_2(contents: &str) -> u64 {
     let vertices = parse_input_2(contents);
 
     let lower_bound = vertices.iter().map(|p| p.y).min().unwrap();

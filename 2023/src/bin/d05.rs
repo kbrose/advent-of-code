@@ -29,8 +29,8 @@ impl Map {
     }
 }
 
-fn parse_input(contents: &String) -> (Vec<u64>, Vec<Map>) {
-    let mut lines = contents.split('\n').filter(|s| s.len() > 0);
+fn parse_input(contents: &str) -> (Vec<u64>, Vec<Map>) {
+    let mut lines = contents.split('\n').filter(|s| !s.is_empty());
     let seeds = lines.next().unwrap()[7..]
         .split_whitespace()
         .map(|s| s.parse().unwrap())
@@ -56,7 +56,7 @@ fn parse_input(contents: &String) -> (Vec<u64>, Vec<Map>) {
     (seeds, maps)
 }
 
-fn compute_1(contents: &String) -> u64 {
+fn compute_1(contents: &str) -> u64 {
     let (seeds, maps) = parse_input(contents);
     let mut curr = u64::MAX;
     for mut seed in seeds {
@@ -68,7 +68,7 @@ fn compute_1(contents: &String) -> u64 {
     curr
 }
 
-fn compute_2(contents: &String) -> u64 {
+fn compute_2(contents: &str) -> u64 {
     let (seeds, maps) = parse_input(contents);
     let seed_ranges: Vec<(u64, u64)> = seeds
         .iter()
@@ -104,14 +104,11 @@ fn compute_2(contents: &String) -> u64 {
         prev_crit_points = crit_points.clone();
     }
     crit_points.extend(seed_ranges.iter().map(|(a, _)| a));
-    crit_points = crit_points
-        .into_iter()
-        .filter(|c| {
-            seed_ranges
-                .iter()
-                .any(|(start, range)| start <= c && *c < start + range)
-        })
-        .collect();
+    crit_points.retain(|c| {
+        seed_ranges
+            .iter()
+            .any(|(start, range)| start <= c && *c < start + range)
+    });
     let mut curr = u64::MAX;
     for mut seed in crit_points {
         for map in maps.iter() {

@@ -4,13 +4,13 @@ fn get_number_1(line: &str) -> u64 {
     let mut first: char = '0';
     let mut second: char = '0';
     for c in line.chars() {
-        if c.is_digit(10) {
+        if c.is_ascii_digit() {
             first = c;
             break;
         }
     }
     for c in line.chars().rev() {
-        if c.is_digit(10) {
+        if c.is_ascii_digit() {
             second = c;
             break;
         }

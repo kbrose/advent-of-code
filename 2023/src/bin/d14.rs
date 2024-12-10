@@ -33,7 +33,7 @@ impl std::fmt::Display for Rock {
 
 type Platform = Vec<Vec<Rock>>;
 
-fn parse_input(contents: &String) -> Platform {
+fn parse_input(contents: &str) -> Platform {
     contents
         .trim()
         .split('\n')
@@ -60,7 +60,7 @@ fn tilt_north(platform: &mut Platform) {
                 Rock::Round => {
                     platform[row_index][col_index] = Rock::Empty;
                     platform[next_location][col_index] = Rock::Round;
-                    next_location = next_location + 1;
+                    next_location += 1;
                 }
             }
         }
@@ -72,16 +72,15 @@ fn compute_load(platform: &Platform) -> usize {
     for (mut rows_from_south, row) in platform.iter().rev().enumerate() {
         rows_from_south += 1;
         for rock in row {
-            match rock {
-                Rock::Round => summand += rows_from_south,
-                _ => {}
+            if rock == &Rock::Round {
+                summand += rows_from_south
             }
         }
     }
     summand
 }
 
-fn compute_1(contents: &String) -> usize {
+fn compute_1(contents: &str) -> usize {
     let mut platform = parse_input(contents);
     // show(&platform);
     tilt_north(&mut platform);
@@ -123,15 +122,15 @@ fn tilt_north_south(platform: &mut Platform, is_north: bool) {
 }
 
 fn tilt_east_west(platform: &mut Platform, is_west: bool) {
-    let num_rows = platform.len();
     let num_cols = platform[0].len();
-    for row_index in 0..num_rows {
+    for platform_row in platform.iter_mut() {
+        // for row_index in 0..num_rows {
         let mut next_location = if is_west { 0 } else { num_cols - 1 };
         for mut col_index in 0..num_cols {
             if !is_west {
                 col_index = num_cols - col_index - 1;
             }
-            match platform[row_index][col_index] {
+            match platform_row[col_index] {
                 Rock::Empty => {}
                 Rock::Square => {
                     next_location = if is_west {
@@ -141,8 +140,8 @@ fn tilt_east_west(platform: &mut Platform, is_west: bool) {
                     }
                 }
                 Rock::Round => {
-                    platform[row_index][col_index] = Rock::Empty;
-                    platform[row_index][next_location] = Rock::Round;
+                    platform_row[col_index] = Rock::Empty;
+                    platform_row[next_location] = Rock::Round;
                     next_location = if is_west {
                         next_location + 1
                     } else {
@@ -166,7 +165,7 @@ fn get_round_rock_locations(platform: &Platform) -> std::collections::HashSet<(u
     locations
 }
 
-fn compute_2(contents: &String) -> usize {
+fn compute_2(contents: &str) -> usize {
     let mut platform = parse_input(contents);
     let mut locations = Vec::new();
     let mut loads = Vec::new();
@@ -181,8 +180,7 @@ fn compute_2(contents: &String) -> usize {
             let matching_iter_count = locations
                 .iter()
                 .enumerate()
-                .filter(|(_, l)| **l == curr_locations)
-                .next()
+                .find(|(_, l)| **l == curr_locations)
                 .unwrap()
                 .0;
             let cycle_len = iteration_count - matching_iter_count;

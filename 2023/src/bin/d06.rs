@@ -9,19 +9,18 @@ fn parse_line_into_nums(line: &str) -> Vec<u64> {
     line.split(':')
         .nth(1)
         .unwrap()
-        .trim()
         .split_whitespace()
         .map(|s| s.parse::<u64>().unwrap())
         .collect()
 }
 
-fn parse_input(contents: &String) -> Vec<Race> {
+fn parse_input(contents: &str) -> Vec<Race> {
     let mut lines = contents.split('\n');
     let times = parse_line_into_nums(lines.next().unwrap());
     let dists = parse_line_into_nums(lines.next().unwrap());
     times
         .into_iter()
-        .zip(dists.into_iter())
+        .zip(dists)
         .map(|(time, dist)| Race { time, dist })
         .collect()
 }
@@ -41,7 +40,7 @@ fn parse_input_2(contents: String) -> Race {
     Race { time, dist }
 }
 
-fn compute_1(contents: &String) -> u64 {
+fn compute_1(contents: &str) -> u64 {
     // T = total time
     // h = held time
     // D = record distance traveled

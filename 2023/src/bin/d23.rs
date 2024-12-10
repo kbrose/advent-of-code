@@ -47,7 +47,7 @@ struct Graph {
 
 fn simplify_graph(graph: Graph) -> Graph {
     let mut nodes = graph.nodes;
-    let ids: Vec<Id> = nodes.keys().map(|id| *id).collect();
+    let ids: Vec<Id> = nodes.keys().copied().collect();
     let mut removed_ids: Vec<&Id> = Vec::new();
     for id in ids.iter() {
         if (nodes[id].edges.len() == 2) && (*id != graph.start_id) && (*id != graph.end_id) {
@@ -93,7 +93,7 @@ fn simplify_graph(graph: Graph) -> Graph {
     }
 }
 
-fn parse_input(contents: &String, slopes_are_slippery: bool) -> Graph {
+fn parse_input(contents: &str, slopes_are_slippery: bool) -> Graph {
     let mut map: Vec<Vec<Tile>> = Vec::new();
     for line in contents.trim().split('\n') {
         map.push(
@@ -203,8 +203,8 @@ fn parse_input(contents: &String, slopes_are_slippery: bool) -> Graph {
 
     assert_eq!(1, nodes.iter().filter(|n| n.is_start).count());
     assert_eq!(1, nodes.iter().filter(|n| n.is_end).count());
-    let start_id = nodes.iter().filter(|n| n.is_start).next().unwrap().id;
-    let end_id = nodes.iter().filter(|n| n.is_end).next().unwrap().id;
+    let start_id = nodes.iter().find(|n| n.is_start).unwrap().id;
+    let end_id = nodes.iter().find(|n| n.is_end).unwrap().id;
 
     Graph {
         nodes: HashMap::from_iter(nodes.iter().map(|n| (n.id, n.clone()))),
@@ -227,8 +227,7 @@ fn find_longest_path(graph: Graph) -> usize {
         dist: 0,
     }];
     let mut longest_path_dist: usize = 0;
-    while possible_paths.len() > 0 {
-        let mut path = possible_paths.pop().unwrap();
+    while let Some(mut path) = possible_paths.pop() {
         if path.curr == graph.end_id {
             longest_path_dist = std::cmp::max(longest_path_dist, path.dist);
         }
@@ -248,23 +247,22 @@ fn find_longest_path(graph: Graph) -> usize {
             new_path.dist += edge.dist;
             possible_paths.push(new_path);
         }
-        edges.pop().and_then(|edge| {
+        if let Some(edge) = edges.pop() {
             path.curr = edge.dest;
             path.dist += edge.dist;
             possible_paths.push(path);
-            Some(())
-        });
+        }
     }
 
     longest_path_dist
 }
 
-fn compute_1(contents: &String) -> usize {
+fn compute_1(contents: &str) -> usize {
     let graph = simplify_graph(parse_input(contents, true));
     find_longest_path(graph)
 }
 
-fn compute_2(contents: &String) -> usize {
+fn compute_2(contents: &str) -> usize {
     let graph = simplify_graph(parse_input(contents, false));
     find_longest_path(graph)
 }

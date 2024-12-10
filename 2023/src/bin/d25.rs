@@ -3,7 +3,7 @@ use std::{collections::HashMap, fs};
 type Node = usize;
 type AdjMat = Vec<Vec<u64>>;
 
-fn parse_input(contents: &String) -> AdjMat {
+fn parse_input(contents: &str) -> AdjMat {
     let mut curr_id: Node = 0;
     let mut name_to_id: HashMap<String, Node> = HashMap::new();
     // First, find all nodes
@@ -76,8 +76,8 @@ fn min_cut(mut adj_mat: AdjMat) -> usize {
             t = new_t;
             min_cut = dist_to_visited_set[t];
             dist_to_visited_set[t] = 0;
-            for i in 0..dist_to_visited_set.len() {
-                dist_to_visited_set[i] += adj_mat[t][i];
+            for (dist_i, edge_t_i) in dist_to_visited_set.iter_mut().zip(adj_mat[t].iter()) {
+                *dist_i += edge_t_i;
             }
         }
 
@@ -110,11 +110,11 @@ fn min_cut(mut adj_mat: AdjMat) -> usize {
             .find(|i| final_adj_mat[*i].iter().sum::<u64>() > 0) // deleted nodes have no edges
             .unwrap(),
     );
-    while to_visit.len() > 0 {
+    while !to_visit.is_empty() {
         let node = &to_visit.pop().unwrap();
         partition.push(*node);
-        for neighbor in 0..final_adj_mat.len() {
-            if (final_adj_mat[neighbor][*node] > 0)
+        for (neighbor, neighbor_edges) in final_adj_mat.iter().enumerate() {
+            if (neighbor_edges[*node] > 0)
                 && (!to_visit.contains(&neighbor))
                 && (!partition.contains(&neighbor))
             {
@@ -131,7 +131,7 @@ fn min_cut(mut adj_mat: AdjMat) -> usize {
     x * y
 }
 
-fn compute_1(contents: &String) -> usize {
+fn compute_1(contents: &str) -> usize {
     let adj_mat = parse_input(contents);
     min_cut(adj_mat)
 }

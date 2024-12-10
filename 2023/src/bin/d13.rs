@@ -4,15 +4,15 @@ type Pattern = Vec<Vec<bool>>;
 
 fn transpose(pattern: &Pattern) -> Pattern {
     let mut new = vec![Vec::with_capacity(pattern.len()); pattern[0].len()];
-    for i in 0..pattern.len() {
-        for j in 0..pattern[0].len() {
-            new[j].push(pattern[i][j]);
+    for pattern_i in pattern.iter() {
+        for (j, pattern_ij) in pattern_i.iter().enumerate() {
+            new[j].push(*pattern_ij);
         }
     }
     new
 }
 
-fn parse_input(contents: &String) -> Vec<Pattern> {
+fn parse_input(contents: &str) -> Vec<Pattern> {
     contents
         .trim_end()
         .split("\n\n")
@@ -39,7 +39,7 @@ fn horizontal_symmetry(pattern: &Pattern) -> Option<usize> {
     None
 }
 
-fn compute_1(contents: &String) -> usize {
+fn compute_1(contents: &str) -> usize {
     let mut summand = 0;
     for pattern in parse_input(contents) {
         match horizontal_symmetry(&pattern) {
@@ -54,7 +54,7 @@ fn compute_1(contents: &String) -> usize {
     summand
 }
 
-fn diff_count(seq1: &Vec<bool>, seq2: &Vec<bool>) -> u32 {
+fn diff_count(seq1: &[bool], seq2: &[bool]) -> u32 {
     seq1.iter()
         .zip(seq2.iter())
         .map(|(a, b)| (a != b) as u32)
@@ -76,7 +76,7 @@ fn horizontal_almost_symmetry(pattern: &Pattern) -> Option<usize> {
     None
 }
 
-fn compute_2(contents: &String) -> usize {
+fn compute_2(contents: &str) -> usize {
     let mut summand = 0;
     for pattern in parse_input(contents) {
         match horizontal_almost_symmetry(&pattern) {

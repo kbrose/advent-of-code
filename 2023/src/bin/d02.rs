@@ -1,6 +1,6 @@
 use std::fs;
 
-struct RGB {
+struct Rgb {
     r: u64,
     g: u64,
     b: u64,
@@ -8,10 +8,10 @@ struct RGB {
 
 struct Game {
     id: u64,
-    games: Vec<RGB>,
+    games: Vec<Rgb>,
 }
 
-fn parse_game(game_string: &str) -> RGB {
+fn parse_game(game_string: &str) -> Rgb {
     let mut r = 0;
     let mut g = 0;
     let mut b = 0;
@@ -27,7 +27,7 @@ fn parse_game(game_string: &str) -> RGB {
             b = num;
         }
     }
-    RGB { r, g, b }
+    Rgb { r, g, b }
 }
 
 fn parse_line(line: &str) -> Game {
@@ -43,12 +43,12 @@ fn parse_line(line: &str) -> Game {
 fn parse_input(contents: String) -> Vec<Game> {
     contents
         .split('\n')
-        .filter(|l| l.len() > 0)
+        .filter(|l| !l.is_empty())
         .map(parse_line)
         .collect()
 }
 
-fn game_plausible(game: &Game, rgb: &RGB) -> bool {
+fn game_plausible(game: &Game, rgb: &Rgb) -> bool {
     !game
         .games
         .iter()
@@ -68,7 +68,7 @@ fn main() {
 
     let games = parse_input(contents);
 
-    let limit = RGB {
+    let limit = Rgb {
         r: 12,
         g: 13,
         b: 14,

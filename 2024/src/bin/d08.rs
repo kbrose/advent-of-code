@@ -41,7 +41,7 @@ impl Add for &Pos {
     }
 }
 
-fn parse_input(contents: &String) -> (HashMap<char, Vec<Pos>>, usize, usize) {
+fn parse_input(contents: &str) -> (HashMap<char, Vec<Pos>>, usize, usize) {
     let mut antennas = HashMap::new();
     let mut i_lim = 0;
     let mut j_lim = 0;
@@ -60,7 +60,7 @@ fn parse_input(contents: &String) -> (HashMap<char, Vec<Pos>>, usize, usize) {
     (antennas, i_lim + 1, j_lim + 1)
 }
 
-fn compute_1(contents: &String) -> usize {
+fn compute_1(contents: &str) -> usize {
     let (antennas, i_lim, j_lim) = parse_input(contents);
 
     let mut observed_spots: HashSet<Pos> = HashSet::new();
@@ -86,7 +86,7 @@ fn compute_1(contents: &String) -> usize {
     observed_spots.len()
 }
 
-fn compute_2(contents: &String) -> usize {
+fn compute_2(contents: &str) -> usize {
     let (antennas, i_lim, j_lim) = parse_input(contents);
 
     let mut observed_spots: HashSet<Pos> = HashSet::new();

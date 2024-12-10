@@ -22,7 +22,7 @@ struct Location {
 
 type Connections = HashMap<Location, Vec<Location>>;
 
-fn parse_input(contents: &String) -> (Location, Connections) {
+fn parse_input(contents: &str) -> (Location, Connections) {
     let mut map = [[Tile::Garden; MAP_DIMENSION]; MAP_DIMENSION];
     let mut start = Location { x: 0, y: 0 };
     for (x, line) in contents.trim().split('\n').enumerate() {
@@ -112,7 +112,7 @@ fn count_reachable(start: Location, connections: &Connections, num_steps: usize)
 //     }
 // }
 
-fn compute_1(contents: &String) -> usize {
+fn compute_1(contents: &str) -> usize {
     let (start, connections) = parse_input(contents);
     count_reachable(start, &connections, NUM_STEPS_PART_1)
 }
@@ -141,7 +141,7 @@ fn saturation_info(start: Location, connections: &Connections) -> (usize, usize,
     (i - 2, last_four_counts[0], last_four_counts[1])
 }
 
-fn compute_2(contents: &String) -> usize {
+fn compute_2(contents: &str) -> usize {
     let (start, connections) = parse_input(contents);
 
     // We're gonna do a lot of cheating here.

@@ -92,7 +92,7 @@ impl Tile {
 
 type Contraption = (Vec<Vec<Tile>>, usize, usize);
 
-fn parse_input(contents: &String) -> Contraption {
+fn parse_input(contents: &str) -> Contraption {
     let contraption: Vec<Vec<Tile>> = contents
         .trim()
         .split('\n')
@@ -125,8 +125,7 @@ fn compute(contraption: Contraption, initial_beam: Option<Beam>) -> u64 {
             is_entry: true,
         },
     }];
-    while beams.len() > 0 {
-        let mut beam = beams.pop().unwrap();
+    while let Some(mut beam) = beams.pop() {
         if beam.march(num_rows, num_cols) {
             // contraption[beam.row][beam.col];
             match beam.dir {
@@ -259,12 +258,12 @@ fn compute(contraption: Contraption, initial_beam: Option<Beam>) -> u64 {
         .sum()
 }
 
-fn compute_1(contents: &String) -> u64 {
+fn compute_1(contents: &str) -> u64 {
     let contraption = parse_input(contents);
     compute(contraption, None)
 }
 
-fn compute_2(contents: &String) -> u64 {
+fn compute_2(contents: &str) -> u64 {
     let (contraption, num_rows, num_cols) = parse_input(contents);
     (0..num_rows)
         .flat_map(|row| {

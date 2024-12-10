@@ -60,7 +60,7 @@ impl Manual {
     }
 }
 
-fn parse_input(contents: &String) -> (Rules, Manuals) {
+fn parse_input(contents: &str) -> (Rules, Manuals) {
     let (rule_str, manual_str) = contents.trim().split_once("\n\n").unwrap();
     let rules = rule_str
         .split('\n')
@@ -74,7 +74,7 @@ fn parse_input(contents: &String) -> (Rules, Manuals) {
     (rules, manuals)
 }
 
-fn compute_1(contents: &String) -> u64 {
+fn compute_1(contents: &str) -> u64 {
     let (rules, manuals) = parse_input(contents);
     manuals
         .iter()
@@ -95,7 +95,7 @@ fn fix_manual(manual: Manual, rules: &Rules) -> Manual {
     Manual { pages }
 }
 
-fn compute_2(contents: &String) -> u64 {
+fn compute_2(contents: &str) -> u64 {
     let (rules, manuals) = parse_input(contents);
     manuals
         .iter()

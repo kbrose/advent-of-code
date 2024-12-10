@@ -22,28 +22,28 @@ impl Dir {
 }
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
-enum Pipe {
+enum Tile {
     Pipe((Dir, Dir)),
     Ground,
     Start,
 }
 
-impl Pipe {
-    fn new_pipe(d1: Dir, d2: Dir) -> Pipe {
-        if d1 == d2 {
-            panic!("Pipe must have two distinct directions!");
-        } else if d1 < d2 {
-            Pipe::Pipe((d1, d2))
-        } else {
-            Pipe::Pipe((d2, d1))
+impl Tile {
+    fn new_pipe(d1: Dir, d2: Dir) -> Tile {
+        match d1.cmp(&d2) {
+            std::cmp::Ordering::Less => Tile::Pipe((d1, d2)),
+            std::cmp::Ordering::Equal => {
+                panic!("Pipe must have two distinct directions!");
+            }
+            std::cmp::Ordering::Greater => Tile::Pipe((d2, d1)),
         }
     }
 
     fn where_to(&self, dir_from: Dir) -> Dir {
         match self {
-            Pipe::Ground => Dir::N, // who cares
-            Pipe::Start => Dir::N,  // no but really, who cares
-            Pipe::Pipe((d1, d2)) => {
+            Tile::Ground => Dir::N, // who cares
+            Tile::Start => Dir::N,  // no but really, who cares
+            Tile::Pipe((d1, d2)) => {
                 if d1 == &dir_from {
                     *d2
                 } else {
@@ -55,39 +55,39 @@ impl Pipe {
 
     fn solo_east_west_dir(&self) -> Option<Dir> {
         match self {
-            Pipe::Pipe((Dir::N, Dir::E)) => Some(Dir::E),
-            Pipe::Pipe((Dir::N, Dir::W)) => Some(Dir::W),
-            Pipe::Pipe((Dir::S, Dir::E)) => Some(Dir::E),
-            Pipe::Pipe((Dir::S, Dir::W)) => Some(Dir::W),
+            Tile::Pipe((Dir::N, Dir::E)) => Some(Dir::E),
+            Tile::Pipe((Dir::N, Dir::W)) => Some(Dir::W),
+            Tile::Pipe((Dir::S, Dir::E)) => Some(Dir::E),
+            Tile::Pipe((Dir::S, Dir::W)) => Some(Dir::W),
             _ => None,
         }
     }
 }
 
-type PipeGrid = Vec<Vec<Pipe>>;
+type PipeGrid = Vec<Vec<Tile>>;
 
-fn parse_input(contents: &String) -> (PipeGrid, (usize, usize)) {
+fn parse_input(contents: &str) -> (PipeGrid, (usize, usize)) {
     let mut s_i = 0;
     let mut s_j = 0;
     let pipes = contents
         .split('\n')
-        .filter(|l| l.len() > 0)
+        .filter(|l| !l.is_empty())
         .enumerate()
         .map(|(i, line)| {
             line.chars()
                 .enumerate()
                 .map(|(j, c)| match c {
-                    '|' => Pipe::new_pipe(Dir::N, Dir::S),
-                    '-' => Pipe::new_pipe(Dir::E, Dir::W),
-                    'L' => Pipe::new_pipe(Dir::N, Dir::E),
-                    'J' => Pipe::new_pipe(Dir::N, Dir::W),
-                    '7' => Pipe::new_pipe(Dir::S, Dir::W),
-                    'F' => Pipe::new_pipe(Dir::S, Dir::E),
-                    '.' => Pipe::Ground,
+                    '|' => Tile::new_pipe(Dir::N, Dir::S),
+                    '-' => Tile::new_pipe(Dir::E, Dir::W),
+                    'L' => Tile::new_pipe(Dir::N, Dir::E),
+                    'J' => Tile::new_pipe(Dir::N, Dir::W),
+                    '7' => Tile::new_pipe(Dir::S, Dir::W),
+                    'F' => Tile::new_pipe(Dir::S, Dir::E),
+                    '.' => Tile::Ground,
                     'S' => {
                         s_i = i;
                         s_j = j;
-                        Pipe::Start
+                        Tile::Start
                     }
                     _ => panic!(),
                 })
@@ -141,7 +141,7 @@ fn traverse_pipes(
     (dists, visited)
 }
 
-fn compute_1(contents: &String) -> u64 {
+fn compute_1(contents: &str) -> u64 {
     let (pipes, (s_i, s_j)) = parse_input(contents);
 
     // Find the directions we can go to from the start.
@@ -156,7 +156,7 @@ fn compute_1(contents: &String) -> u64 {
         if DIRS
             .iter()
             .filter(|d| **d != check_dir.opposite())
-            .map(|d| Pipe::new_pipe(*d, check_dir.opposite()))
+            .map(|d| Tile::new_pipe(*d, check_dir.opposite()))
             .any(|p| p == pipe_to_check)
         {
             dirs.push(check_dir);
@@ -193,7 +193,7 @@ fn compute_2(contents: String) -> u64 {
         if DIRS
             .iter()
             .filter(|d| **d != check_dir.opposite())
-            .map(|d| Pipe::new_pipe(*d, check_dir.opposite()))
+            .map(|d| Tile::new_pipe(*d, check_dir.opposite()))
             .any(|p| p == pipe_to_check)
         {
             dirs.push(check_dir);
@@ -203,7 +203,7 @@ fn compute_2(contents: String) -> u64 {
 
     let visited = traverse_pipes(&pipes, s_i, s_j, dirs[0]).1;
 
-    pipes[s_i][s_j] = Pipe::new_pipe(dirs[0], dirs[1]);
+    pipes[s_i][s_j] = Tile::new_pipe(dirs[0], dirs[1]);
 
     let mut contained_count = 0;
     for i in 0..pipes.len() {
@@ -220,19 +220,18 @@ fn compute_2(contents: String) -> u64 {
                 //   X
                 //
                 // which shouldn't count as intersecting a pipe when casting the ray from X
-                for k in 0..i {
+                for (k, pipes_k) in pipes.iter().take(i).enumerate() {
                     if visited.contains(&(k, j)) {
-                        let curr_pipes_east_west_dir = pipes[k][j].solo_east_west_dir();
+                        let curr_pipes_east_west_dir = pipes_k[j].solo_east_west_dir();
                         match how_we_got_here {
-                            Some(incoming_dir) => match curr_pipes_east_west_dir {
-                                Some(d) => {
+                            Some(incoming_dir) => {
+                                if let Some(d) = curr_pipes_east_west_dir {
                                     if d != incoming_dir {
                                         odd_intersrection_count = !odd_intersrection_count;
                                     }
                                     how_we_got_here = None;
                                 }
-                                None => {}
-                            },
+                            }
                             None => match curr_pipes_east_west_dir {
                                 Some(d) => {
                                     how_we_got_here = Some(d);

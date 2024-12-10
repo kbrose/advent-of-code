@@ -1,8 +1,8 @@
 use std::{collections::HashSet, fs};
 
-fn parse_input(contents: &String, expansion_factor: usize) -> Vec<(usize, usize)> {
+fn parse_input(contents: &str, expansion_factor: usize) -> Vec<(usize, usize)> {
     let mut locations = vec![];
-    for (i, line) in contents.split('\n').filter(|l| l.len() > 0).enumerate() {
+    for (i, line) in contents.split('\n').filter(|l| !l.is_empty()).enumerate() {
         for j in line
             .chars()
             .enumerate()
@@ -46,7 +46,7 @@ fn absolute_difference(a: usize, b: usize) -> usize {
     }
 }
 
-fn compute(contents: &String, expansion_factor: usize) -> usize {
+fn compute(contents: &str, expansion_factor: usize) -> usize {
     let mut summand = 0;
     let locations = parse_input(contents, expansion_factor);
     for (l1_index, l1) in locations.iter().enumerate() {

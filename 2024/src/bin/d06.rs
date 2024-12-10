@@ -23,7 +23,7 @@ struct Guard {
 
 type Map = Vec<Vec<Tile>>;
 
-fn parse_input(contents: &String) -> (Map, Guard) {
+fn parse_input(contents: &str) -> (Map, Guard) {
     let mut map: Map = Vec::new();
     let mut guard = Guard {
         pos: (usize::MAX, usize::MAX),
@@ -86,12 +86,12 @@ fn process_path(mut map: Map, mut guard: Guard) -> usize {
         .sum()
 }
 
-fn compute_1(contents: &String) -> usize {
+fn compute_1(contents: &str) -> usize {
     let (map, guard) = parse_input(contents);
     process_path(map, guard)
 }
 
-fn compute_2(contents: &String) -> u64 {
+fn compute_2(contents: &str) -> u64 {
     let (map, guard) = parse_input(contents);
     let mut counter = 0;
     for i in 0..map.len() {

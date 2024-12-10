@@ -1,16 +1,16 @@
 use std::fs;
 
-fn parse_input(contents: &String) -> () {
+fn parse_input(contents: &str) -> () {
     for _line in contents.trim().split('\n') {}
     todo!()
 }
 
-fn compute_1(contents: &String) -> u64 {
+fn compute_1(contents: &str) -> u64 {
     let _x = parse_input(contents);
     todo!()
 }
 
-// fn compute_2(contents: &String) -> u64 {
+// fn compute_2(contents: &str) -> u64 {
 //     let x = parse_input(contents);
 //     todo!()
 // }

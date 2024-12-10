@@ -1,6 +1,6 @@
 use std::{collections::HashMap, fs};
 
-fn parse_input(contents: &String) -> (Vec<u64>, Vec<u64>) {
+fn parse_input(contents: &str) -> (Vec<u64>, Vec<u64>) {
     let mut v1 = Vec::new();
     let mut v2 = Vec::new();
     for line in contents.trim().split('\n') {
@@ -11,7 +11,7 @@ fn parse_input(contents: &String) -> (Vec<u64>, Vec<u64>) {
     (v1, v2)
 }
 
-fn compute_1(contents: &String) -> u64 {
+fn compute_1(contents: &str) -> u64 {
     let (mut v1, mut v2) = parse_input(contents);
     v1.sort();
     v2.sort();
@@ -20,7 +20,7 @@ fn compute_1(contents: &String) -> u64 {
         .sum()
 }
 
-fn compute_2(contents: &String) -> u64 {
+fn compute_2(contents: &str) -> u64 {
     let (v1, v2) = parse_input(contents);
     let mut counter: HashMap<u64, u64> = HashMap::new();
     for value in v2.iter() {

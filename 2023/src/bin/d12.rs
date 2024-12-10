@@ -7,10 +7,10 @@ enum Spring {
     Dunno,
 }
 
-fn parse_input(contents: &String) -> Vec<(Vec<Spring>, Vec<u64>)> {
+fn parse_input(contents: &str) -> Vec<(Vec<Spring>, Vec<u64>)> {
     contents
         .split('\n')
-        .filter(|line| line.len() > 0)
+        .filter(|line| !line.is_empty())
         .map(|line| {
             let mut split = line.split_whitespace();
             let springs = split
@@ -39,7 +39,7 @@ fn is_valid(springs: &Vec<Spring>, contiguous_counts: &Vec<u64>) -> Option<bool>
     let mut observed_counts = vec![];
     let mut in_streak = false;
     for s in springs {
-        if !in_streak && observed_counts.len() > 0 {
+        if !in_streak && !observed_counts.is_empty() {
             // short circuit test
             if observed_counts.len() > contiguous_counts.len() {
                 return Some(false);
@@ -84,17 +84,17 @@ fn count_arrangements(springs: &Vec<Spring>, contiguous_counts: &Vec<u64>, i: us
     }
 }
 
-fn compute_1(contents: &String) -> u64 {
+fn compute_1(contents: &str) -> u64 {
     parse_input(contents)
         .iter()
         .map(|(a, b)| count_arrangements(a, b, 0))
         .sum()
 }
 
-fn parse_input_2(contents: &String, n: usize) -> Vec<(Vec<Spring>, Vec<usize>)> {
+fn parse_input_2(contents: &str, n: usize) -> Vec<(Vec<Spring>, Vec<usize>)> {
     contents
         .split('\n')
-        .filter(|line| line.len() > 0)
+        .filter(|line| !line.is_empty())
         .map(|line| {
             let mut split = line.split_whitespace();
             let springs_string = split.next().unwrap();
@@ -157,7 +157,7 @@ fn is_compatible(reference: &[Spring], candidate: &[Spring]) -> bool {
 // 2 (0, 0)   (0, 0)   (0, 0)   (1, 3)   (2, 4)   (3, 5)   (0, 0)   (1, 7)   (2, 8)   (2, 8)   (2, 8)   (2, 8)
 // 1 (0, 0)   (0, 0)   (0, 0)   (0, 0)   (0, 0)   (1, 5)   (0, 0)   (3, 7)   (3, 7)   (4, 9)   (6, 10)  (8, 11)
 // 1 (0, 0)   (0, 0)   (0, 0)   (0, 0)   (0, 0)   (0, 0)   (0, 0)   (1, 7)   (1, 7)   (4, 9)   (7, 10)  (11, 11)
-fn count_arrangements_2(springs: &Vec<Spring>, contiguous_counts: &Vec<usize>) -> u64 {
+fn count_arrangements_2(springs: &[Spring], contiguous_counts: &[usize]) -> u64 {
     let mut matrix: Vec<Vec<(u64, usize)>> = vec![];
     for _ in 0..(contiguous_counts.len() + 1) {
         matrix.push(vec![(0, 0); springs.len()]);
@@ -170,8 +170,7 @@ fn count_arrangements_2(springs: &Vec<Spring>, contiguous_counts: &Vec<usize>) -
                 .iter()
                 .map(|(counts, _)| *counts > 0)
                 .enumerate()
-                .filter(|(_, valid)| *valid)
-                .next()
+                .find(|(_, valid)| *valid)
             {
                 Some((index, _)) => j_start = std::cmp::max(index + c + 1, j_start),
                 None => return 0,
@@ -203,10 +202,10 @@ fn count_arrangements_2(springs: &Vec<Spring>, contiguous_counts: &Vec<usize>) -
     matrix.last().unwrap().last().unwrap().0
 }
 
-fn compute_2(contents: &String) -> u64 {
+fn compute_2(contents: &str) -> u64 {
     parse_input_2(contents, 5)
         .iter()
-        .map(|(a, b)| count_arrangements_2(&a, &b))
+        .map(|(a, b)| count_arrangements_2(a, b))
         .sum()
 }
 

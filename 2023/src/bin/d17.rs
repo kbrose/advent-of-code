@@ -76,7 +76,7 @@ fn try_move(
     }
 }
 
-fn parse_input(contents: &String) -> Vec<Vec<u64>> {
+fn parse_input(contents: &str) -> Vec<Vec<u64>> {
     contents
         .trim()
         .split('\n')
@@ -88,7 +88,7 @@ fn parse_input(contents: &String) -> Vec<Vec<u64>> {
         .collect()
 }
 
-fn compute_1(contents: &String) -> Option<u64> {
+fn compute_1(contents: &str) -> Option<u64> {
     let city = parse_input(contents);
     let num_rows = city.len();
     let num_cols = city[0].len();
@@ -112,7 +112,7 @@ fn compute_1(contents: &String) -> Option<u64> {
             count: 1,
         },
     )));
-    while todo.len() > 0 {
+    while !todo.is_empty() {
         let Reverse((cost, row, col, vec)) = todo.pop().unwrap();
         if (row, col) == (num_rows - 1, num_cols - 1) {
             return Some(cost);
@@ -169,7 +169,7 @@ fn compute_1(contents: &String) -> Option<u64> {
     None
 }
 
-fn compute_2(contents: &String) -> Option<u64> {
+fn compute_2(contents: &str) -> Option<u64> {
     let city = parse_input(contents);
     let num_rows = city.len();
     let num_cols = city[0].len();
@@ -193,7 +193,7 @@ fn compute_2(contents: &String) -> Option<u64> {
             count: 1,
         },
     )));
-    while todo.len() > 0 {
+    while !todo.is_empty() {
         let Reverse((cost, row, col, vec)) = todo.pop().unwrap();
         if (row, col) == (num_rows - 1, num_cols - 1) && vec.count >= 4 {
             return Some(cost);

@@ -1,6 +1,6 @@
 use std::fs;
 
-fn parse_input(contents: &String) -> Vec<&str> {
+fn parse_input(contents: &str) -> Vec<&str> {
     contents.trim().split(',').collect()
 }
 
@@ -13,7 +13,7 @@ fn hash(s: &str) -> u8 {
     out.0
 }
 
-fn compute_1(contents: &String) -> u64 {
+fn compute_1(contents: &str) -> u64 {
     parse_input(contents)
         .into_iter()
         .map(hash)
@@ -27,7 +27,7 @@ struct Lens {
     label: String,
 }
 
-fn index_of_lens(v: &Vec<Lens>, label: String) -> Option<usize> {
+fn index_of_lens(v: &[Lens], label: String) -> Option<usize> {
     for (i, element) in v.iter().enumerate() {
         if element.label == label {
             return Some(i);
@@ -36,17 +36,14 @@ fn index_of_lens(v: &Vec<Lens>, label: String) -> Option<usize> {
     None
 }
 
-fn compute_2(contents: &String) -> u64 {
+fn compute_2(contents: &str) -> u64 {
     let mut box_map: Vec<Vec<Lens>> = (0..256).map(|_| vec![]).collect();
     for command in parse_input(contents) {
         if command.ends_with('-') {
             let label = command.split('-').next().unwrap();
             let box_index = hash(label) as usize;
-            match index_of_lens(&box_map[box_index], label.to_string()) {
-                Some(i) => {
-                    box_map[box_index].remove(i);
-                }
-                None => {}
+            if let Some(i) = index_of_lens(&box_map[box_index], label.to_string()) {
+                box_map[box_index].remove(i);
             }
         } else {
             let mut command_split = command.split('=');

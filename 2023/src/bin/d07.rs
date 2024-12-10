@@ -12,7 +12,7 @@ impl Hand {
         for c in self.cards {
             *counts.entry(c).or_insert(0) += 1;
         }
-        let mut counts: Vec<u8> = counts.values().map(|c| *c).collect();
+        let mut counts: Vec<u8> = counts.values().copied().collect();
         counts.sort();
         counts.reverse();
         if counts[0] == 5 {
@@ -43,10 +43,10 @@ impl Hand {
                 *counts.entry(c).or_insert(0) += 1;
             }
         }
-        let mut counts: Vec<u8> = counts.values().map(|c| *c).collect();
+        let mut counts: Vec<u8> = counts.values().copied().collect();
         counts.sort();
         counts.reverse();
-        if counts.len() == 0 {
+        if counts.is_empty() {
             counts = vec![5];
         } else {
             counts[0] += joker_count; // Always best to add jokers to highest count
@@ -121,15 +121,15 @@ fn parse_line_into_hand(line: &str) -> Hand {
     Hand { cards, bid }
 }
 
-fn parse_input(contents: &String) -> Vec<Hand> {
+fn parse_input(contents: &str) -> Vec<Hand> {
     contents
         .split('\n')
-        .filter(|s| s.len() > 0)
+        .filter(|s| !s.is_empty())
         .map(parse_line_into_hand)
         .collect()
 }
 
-fn compute_1(contents: &String) -> u64 {
+fn compute_1(contents: &str) -> u64 {
     let mut hands = parse_input(contents);
     hands.sort();
     hands

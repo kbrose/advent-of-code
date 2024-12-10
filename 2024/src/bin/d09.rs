@@ -22,7 +22,7 @@ struct FileInfo {
 
 type DiskMap = VecDeque<FileInfo>;
 
-fn parse_input(contents: &String) -> DiskMap {
+fn parse_input(contents: &str) -> DiskMap {
     let mut disk_map: DiskMap = VecDeque::with_capacity(contents.len());
     let mut id = 0;
     let mut is_file = true;
@@ -80,7 +80,7 @@ fn checksum(disk_map: &DiskMap) -> usize {
         .sum()
 }
 
-fn compute_1(contents: &String) -> usize {
+fn compute_1(contents: &str) -> usize {
     let mut disk_map = parse_input(contents);
     let mut curr_index = 0;
     loop {
@@ -114,13 +114,12 @@ fn compute_1(contents: &String) -> usize {
     checksum(&disk_map)
 }
 
-fn compute_2(contents: &String) -> usize {
+fn compute_2(contents: &str) -> usize {
     let mut disk_map = parse_input(contents);
 
     for file_id in (0..(disk_map.len())).rev() {
         let id_within_disk_map = (0..disk_map.len())
-            .filter(|i| disk_map[*i].id == file_id)
-            .next()
+            .find(|i| disk_map[*i].id == file_id)
             .unwrap();
         let mut file_info = disk_map[id_within_disk_map].clone();
         for i in 1..std::cmp::min(id_within_disk_map + 1, disk_map.len()) {

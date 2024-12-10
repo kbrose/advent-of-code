@@ -1,9 +1,9 @@
 use std::fs;
 
-fn parse_input(contents: &String) -> Vec<Vec<i64>> {
+fn parse_input(contents: &str) -> Vec<Vec<i64>> {
     contents
         .split('\n')
-        .filter(|s| s.len() > 0)
+        .filter(|s| !s.is_empty())
         .map(|line| {
             line.split_whitespace()
                 .map(|entry| entry.parse().unwrap())
@@ -12,6 +12,7 @@ fn parse_input(contents: &String) -> Vec<Vec<i64>> {
         .collect()
 }
 
+#[allow(clippy::ptr_arg)]
 fn find_next(seq: &Vec<i64>) -> i64 {
     if seq.iter().all(|n| n == &seq[0]) {
         seq[0]
@@ -26,6 +27,7 @@ fn find_next(seq: &Vec<i64>) -> i64 {
     }
 }
 
+#[allow(clippy::ptr_arg)]
 fn find_prev(seq: &Vec<i64>) -> i64 {
     if seq.iter().all(|n| n == &seq[0]) {
         seq[0]
@@ -40,7 +42,7 @@ fn find_prev(seq: &Vec<i64>) -> i64 {
     }
 }
 
-fn compute_1(contents: &String) -> i64 {
+fn compute_1(contents: &str) -> i64 {
     let sequences = parse_input(contents);
 
     sequences.iter().map(find_next).sum()

@@ -237,7 +237,7 @@ impl ModuleInterface for Module {
     }
 }
 
-fn parse_input(contents: &String) -> (ModuleId, HashMap<ModuleId, Module>) {
+fn parse_input(contents: &str) -> (ModuleId, HashMap<ModuleId, Module>) {
     let mut id: usize = 0;
     let mut name_to_id: HashMap<String, ModuleId> = HashMap::new();
     let mut id_to_module: HashMap<ModuleId, Module> = HashMap::new();
@@ -266,10 +266,7 @@ fn parse_input(contents: &String) -> (ModuleId, HashMap<ModuleId, Module>) {
             .collect();
 
         // Create IDs for any newly encountered names
-        for name in destination_names
-            .iter()
-            .chain(vec![module_name.clone()].iter())
-        {
+        for name in destination_names.iter().chain([module_name.clone()].iter()) {
             name_to_id.entry(name.clone()).or_insert(id);
             id += 1;
         }
@@ -329,7 +326,7 @@ fn parse_input(contents: &String) -> (ModuleId, HashMap<ModuleId, Module>) {
         for destination_id in source_module.destinations() {
             incoming_connections
                 .entry(*destination_id)
-                .or_insert(Vec::new())
+                .or_default()
                 .push(source_module.id());
         }
     }
@@ -353,7 +350,7 @@ fn push_button(broadcast_id: usize, modules: &mut HashMap<ModuleId, Module>) -> 
     let mut pulses: VecDeque<(ModuleId, ModuleId, Pulse)> = VecDeque::new();
     pulses.push_back((usize::MAX, broadcast_id, Pulse::Lo));
     lo_count += 1;
-    while pulses.len() > 0 {
+    while !pulses.is_empty() {
         let (source_id, destination_id, pulse) = pulses.pop_front().unwrap();
         modules.entry(destination_id).and_modify(|module| {
             if let Some(new_pulse) = module.process_pulse(source_id, pulse) {
@@ -370,7 +367,7 @@ fn push_button(broadcast_id: usize, modules: &mut HashMap<ModuleId, Module>) -> 
     (lo_count, hi_count)
 }
 
-fn compute_1(contents: &String) -> u64 {
+fn compute_1(contents: &str) -> u64 {
     let (broadcast_id, mut modules) = parse_input(contents);
     let mut lo_count = 0;
     let mut hi_count = 0;
@@ -391,7 +388,7 @@ fn push_button_2(
     // (source_id, dest_id, pulse)
     let mut pulses: VecDeque<(ModuleId, ModuleId, Pulse)> = VecDeque::new();
     pulses.push_back((usize::MAX, broadcast_id, Pulse::Lo));
-    while pulses.len() > 0 {
+    while !pulses.is_empty() {
         let (source_id, destination_id, pulse) = pulses.pop_front().unwrap();
         modules.entry(destination_id).and_modify(|module| {
             if let Some(new_pulse) = module.process_pulse(source_id, pulse) {
@@ -407,7 +404,7 @@ fn push_button_2(
     rx_grandparent_sending_high_pulse
 }
 
-fn compute_2(contents: &String) -> u64 {
+fn compute_2(contents: &str) -> u64 {
     let (broadcast_id, mut modules) = parse_input(contents);
     let rx_id = *modules
         .iter()
@@ -429,7 +426,7 @@ fn compute_2(contents: &String) -> u64 {
         }
     }
     let mut counter: u64 = 0;
-    while unhandled_rx_grandparents.len() > 0 {
+    while !unhandled_rx_grandparents.is_empty() {
         counter += 1;
         if let Some(rx_grandparent_sending_high_pulse) =
             push_button_2(broadcast_id, rx_parent_id, &mut modules)
@@ -442,7 +439,7 @@ fn compute_2(contents: &String) -> u64 {
     }
     rx_grandparents_iters_to_high
         .iter()
-        .map(|e| *e)
+        .copied()
         .reduce(|acc, e| acc * e)
         .unwrap()
 }

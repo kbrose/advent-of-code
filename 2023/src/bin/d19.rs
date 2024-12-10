@@ -109,7 +109,7 @@ fn parse_part(line: &str) -> Part {
             .next()
             .unwrap()
             .strip_prefix(&s)
-            .expect(format!("Did not find {s} where expected").as_str())
+            .unwrap_or_else(|| panic!("Did not find {s} where expected"))
             .parse::<u64>()
             .unwrap()
     };
@@ -120,7 +120,7 @@ fn parse_part(line: &str) -> Part {
     Part { x, m, a, s }
 }
 
-fn parse_input(contents: &String) -> (HashMap<String, Workflow>, Vec<Part>) {
+fn parse_input(contents: &str) -> (HashMap<String, Workflow>, Vec<Part>) {
     let mut split = contents.trim().split("\n\n");
     let workflows = split
         .next()
@@ -136,7 +136,7 @@ fn parse_input(contents: &String) -> (HashMap<String, Workflow>, Vec<Part>) {
 fn is_accepted(workflows: &HashMap<String, Workflow>, part: &Part) -> bool {
     let mut curr_workflow_steps: VecDeque<&WorkflowStep> = workflows["in"].iter().collect();
 
-    while curr_workflow_steps.len() > 0 {
+    while !curr_workflow_steps.is_empty() {
         let workflow_step = curr_workflow_steps.pop_front().unwrap();
         let workflow_step_matches_part = match workflow_step.rule {
             None => true,
@@ -174,7 +174,7 @@ fn is_accepted(workflows: &HashMap<String, Workflow>, part: &Part) -> bool {
     panic!("Unreachable. Or is it?");
 }
 
-fn compute_1(contents: &String) -> u64 {
+fn compute_1(contents: &str) -> u64 {
     let (workflows, parts) = parse_input(contents);
     let mut summand = 0;
     for part in parts {
@@ -307,7 +307,7 @@ impl PartsRange {
         let mut accepted_ranges = vec![];
         let mut workflows_to_do = vec![];
 
-        let mut current_range = self.clone();
+        let mut current_range = *self;
 
         for workflow_step in workflow {
             match workflow_step.rule {
@@ -348,13 +348,12 @@ impl PartsRange {
     }
 }
 
-fn compute_2(contents: &String) -> u64 {
+fn compute_2(contents: &str) -> u64 {
     let workflows = parse_input(contents).0;
     let mut queue: Vec<(String, PartsRange)> = vec![("in".to_string(), PartsRange::default())];
     let mut accepted: Vec<PartsRange> = vec![];
 
-    while queue.len() > 0 {
-        let (workflow_name, parts_range) = queue.pop().unwrap();
+    while let Some((workflow_name, parts_range)) = queue.pop() {
         let workflow = &workflows[&workflow_name];
         let rule_application_results = parts_range.apply_workflow(workflow);
         accepted.extend(rule_application_results.accepted_ranges);

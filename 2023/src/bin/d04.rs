@@ -34,14 +34,12 @@ fn parse_line(line: &str) -> Card {
     let winners = split
         .next()
         .unwrap()
-        .trim()
         .split_whitespace()
         .map(|s| s.parse().unwrap())
         .collect();
     let pickings = split
         .next()
         .unwrap()
-        .trim()
         .split_whitespace()
         .map(|s| s.parse().unwrap())
         .collect();
@@ -52,15 +50,15 @@ fn parse_line(line: &str) -> Card {
     }
 }
 
-fn parse_input(contents: &String) -> Vec<Card> {
+fn parse_input(contents: &str) -> Vec<Card> {
     contents
         .split('\n')
-        .filter(|l| l.len() > 0)
+        .filter(|l| !l.is_empty())
         .map(parse_line)
         .collect()
 }
 
-fn compute_1(contents: &String) -> u64 {
+fn compute_1(contents: &str) -> u64 {
     let cards = parse_input(contents);
     cards.iter().map(|c| c.points()).sum()
 }

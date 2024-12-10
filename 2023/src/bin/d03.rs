@@ -9,9 +9,9 @@ fn maybe_minus_one(n: usize) -> usize {
     }
 }
 
-fn compute_1(contents: &String) -> u64 {
+fn compute_1(contents: &str) -> u64 {
     let mut summand: u64 = 0;
-    let lines: Vec<&str> = contents.split('\n').filter(|s| s.len() > 0).collect();
+    let lines: Vec<&str> = contents.split('\n').filter(|s| !s.is_empty()).collect();
     let num_lines = lines.len();
     for (line_index, line) in lines.iter().enumerate() {
         let mut valid_num = false;
@@ -20,10 +20,11 @@ fn compute_1(contents: &String) -> u64 {
             if "0123456789".contains(c) {
                 num *= 10;
                 num += c.to_digit(10).unwrap() as u64;
-                for query_line_index in
-                    maybe_minus_one(line_index)..cmp::min(line_index + 2, num_lines)
+                for query_line in lines
+                    .iter()
+                    .take(cmp::min(line_index + 2, num_lines))
+                    .skip(maybe_minus_one(line_index))
                 {
-                    let query_line = lines[query_line_index];
                     let query_string = &query_line
                         [maybe_minus_one(char_index)..cmp::min(char_index + 2, query_line.len())];
                     if query_string.chars().any(|c| !"0123456789.".contains(c)) {
@@ -56,11 +57,12 @@ struct Number {
 }
 
 fn num_matches_gear(gear: &Gear, num: &Number) -> bool {
-    if maybe_minus_one(gear.line_index) <= num.line_index && num.line_index <= gear.line_index + 1 {
-        if maybe_minus_one(num.char_start) <= gear.char_index && gear.char_index <= num.char_end + 1
-        {
-            return true;
-        }
+    if maybe_minus_one(gear.line_index) <= num.line_index
+        && num.line_index <= gear.line_index + 1
+        && maybe_minus_one(num.char_start) <= gear.char_index
+        && gear.char_index <= num.char_end + 1
+    {
+        return true;
     }
     false
 }
@@ -68,7 +70,7 @@ fn num_matches_gear(gear: &Gear, num: &Number) -> bool {
 fn compute_2(contents: String) -> u64 {
     let mut potential_gears: Vec<Gear> = vec![];
     let mut numbers: Vec<Number> = Vec::new(); // <(usize, usize, u64)> = vec![];
-    for (line_index, line) in contents.split('\n').filter(|s| s.len() > 0).enumerate() {
+    for (line_index, line) in contents.split('\n').filter(|s| !s.is_empty()).enumerate() {
         let mut num = 0;
         let mut start = usize::MAX;
         let mut stop = 0;

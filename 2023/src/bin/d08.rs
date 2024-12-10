@@ -43,8 +43,8 @@ impl Nodes {
     }
 }
 
-fn parse_inputs(contents: &String) -> Input {
-    let mut lines = contents.split('\n').filter(|s| s.len() > 0);
+fn parse_inputs(contents: &str) -> Input {
+    let mut lines = contents.split('\n').filter(|s| !s.is_empty());
     let moves = lines.next().unwrap().chars().map(|c| c == 'L').collect();
     let node_strings: Vec<&str> = lines.collect();
     // First pass, get the index of each name string
@@ -90,7 +90,7 @@ fn parse_inputs(contents: &String) -> Input {
     }
 }
 
-fn compute_1(contents: &String) -> u64 {
+fn compute_1(contents: &str) -> u64 {
     let input = parse_inputs(contents);
     let mut start_index = input.start_index;
     let end_index = input.end_index;
@@ -108,13 +108,13 @@ fn compute_1(contents: &String) -> u64 {
     counter
 }
 
-fn argmin(v: &Vec<usize>) -> usize {
+fn argmin(v: &[usize]) -> usize {
     let mut i = 0;
     let mut curr_min = usize::MAX;
-    for j in 0..v.len() {
-        if v[j] < curr_min {
+    for (j, v_j) in v.iter().enumerate() {
+        if *v_j < curr_min {
             i = j;
-            curr_min = v[j];
+            curr_min = *v_j;
         }
     }
     i
@@ -132,22 +132,19 @@ fn compute_2(contents: String) -> usize {
         for (i, move_left) in moves {
             let entry = (i, node_index);
             let pos = visited.iter().position(|el| el == &entry);
-            match pos {
-                Some(first_visited_index) => {
-                    cycles.push(Cycle {
-                        warmup: first_visited_index,
-                        length: visited.len() - first_visited_index,
-                        terminals: visited[first_visited_index..]
-                            .iter()
-                            .map(|(_, n)| *n)
-                            .enumerate()
-                            .filter(|(_, n)| nodes.nodes[*n].node_type == NodeType::Stop)
-                            .map(|(a, _)| a)
-                            .collect(),
-                    });
-                    break;
-                }
-                None => {}
+            if let Some(first_visited_index) = pos {
+                cycles.push(Cycle {
+                    warmup: first_visited_index,
+                    length: visited.len() - first_visited_index,
+                    terminals: visited[first_visited_index..]
+                        .iter()
+                        .map(|(_, n)| *n)
+                        .enumerate()
+                        .filter(|(_, n)| nodes.nodes[*n].node_type == NodeType::Stop)
+                        .map(|(a, _)| a)
+                        .collect(),
+                });
+                break;
             }
             visited.push(entry);
             if *move_left {
@@ -163,13 +160,11 @@ fn compute_2(contents: String) -> usize {
     // Wc + Tc + (Lc * i) for i = 0, 1, ...
     let lengths: Vec<usize> = cycles
         .iter()
-        .map(|c| c.terminals.iter().map(|_| c.length))
-        .flatten()
+        .flat_map(|c| c.terminals.iter().map(|_| c.length))
         .collect();
     let mut steps: Vec<usize> = cycles
         .iter()
-        .map(|c| c.terminals.iter().map(|t| c.warmup + t))
-        .flatten()
+        .flat_map(|c| c.terminals.iter().map(|t| c.warmup + t))
         .collect();
     while !steps.iter().all(|s| s == &steps[0]) {
         let cycle_index = argmin(&steps);

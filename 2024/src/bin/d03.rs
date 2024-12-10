@@ -178,7 +178,7 @@ fn process(curr_state: State, c: char, handle_conditionals: bool) -> (State, Opt
     }
 }
 
-fn compute(contents: &String, handle_conditionals: bool) -> u64 {
+fn compute(contents: &str, handle_conditionals: bool) -> u64 {
     let mut state = State::Uninit(true);
     let mut out = 0;
     for c in contents.chars() {
@@ -191,11 +191,11 @@ fn compute(contents: &String, handle_conditionals: bool) -> u64 {
     out
 }
 
-fn compute_1(contents: &String) -> u64 {
+fn compute_1(contents: &str) -> u64 {
     compute(contents, false)
 }
 
-fn compute_2(contents: &String) -> u64 {
+fn compute_2(contents: &str) -> u64 {
     compute(contents, true)
 }
 

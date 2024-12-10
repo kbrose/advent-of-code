@@ -87,7 +87,7 @@ mod private {
 
     pub fn new_bricks_graph(mut bricks: Vec<Brick>) -> Bricks {
         // Sort by z so bricks that are lower are come earlier
-        bricks.sort_by(|a, b| a.z_lo().cmp(&b.z_lo()));
+        bricks.sort_by_key(|a| a.z_lo());
         let bricks: Vec<RcBrick> = bricks
             .into_iter()
             .map(|b| Rc::new(RefCell::new(b)))
@@ -102,9 +102,9 @@ mod private {
             for brick2 in &bricks {
                 if brick.borrow().overlaps(&brick2.borrow()) {
                     if brick2.borrow().z_lo() < brick.borrow().z_lo() {
-                        downward_bricks.push(Rc::clone(&brick2));
+                        downward_bricks.push(Rc::clone(brick2));
                     } else {
-                        upward_bricks.push(Rc::clone(&brick2));
+                        upward_bricks.push(Rc::clone(brick2));
                     }
                 }
             }
@@ -139,13 +139,13 @@ mod private {
                 let bricks_below: Vec<Rc<RefCell<Brick>>> = downward_overlaps
                     .iter()
                     .filter(|overlapper| overlapper.borrow().z_hi() + 1 == brick_height_bottom)
-                    .map(|x| Rc::clone(&x))
+                    .map(Rc::clone)
                     .collect();
                 let brick_height_top = brick.borrow().z_hi();
                 let bricks_above: Vec<Rc<RefCell<Brick>>> = upward_overlaps
                     .iter()
                     .filter(|overlapper| overlapper.borrow().z_lo() == brick_height_top + 1)
-                    .map(|x| Rc::clone(&x))
+                    .map(Rc::clone)
                     .collect();
                 Rc::new(RefCell::new(Node {
                     support_count: bricks_below.len(),
@@ -173,7 +173,7 @@ mod private {
             self.bricks.len() - load_bearing_bricks.len()
         }
 
-        fn reset_support_counts(&mut self) -> () {
+        fn reset_support_counts(&mut self) {
             for node in &mut self.bricks {
                 let mut node = node.borrow_mut();
                 node.support_count = node.bricks_below.len();
@@ -181,12 +181,9 @@ mod private {
         }
 
         fn node_at_brick(&self, brick: &RcBrick) -> Option<&RcNode> {
-            for node in &self.bricks {
-                if node.borrow().brick == *brick {
-                    return Some(&node);
-                }
-            }
-            None
+            self.bricks
+                .iter()
+                .find(|&node| node.borrow().brick == *brick)
         }
 
         pub fn count_total_falls(&mut self) -> usize {
@@ -196,8 +193,7 @@ mod private {
                 // nodes are stored from bottom to top, and we want to process them
                 // in that order.
                 let mut nodes_to_process: Vec<&RcNode> = vec![&self.bricks[i]];
-                while nodes_to_process.len() > 0 {
-                    let node = nodes_to_process.pop().unwrap();
+                while let Some(node) = nodes_to_process.pop() {
                     for supported_brick in &node.borrow().bricks_above {
                         let mut supported_node =
                             self.node_at_brick(supported_brick).unwrap().borrow_mut();
@@ -259,16 +255,16 @@ fn parse_brick_str(brick_str: &str) -> Brick {
     }
 }
 
-fn parse_input(contents: &String) -> Bricks {
+fn parse_input(contents: &str) -> Bricks {
     new_bricks_graph(contents.trim().split('\n').map(parse_brick_str).collect())
 }
 
-fn compute_1(contents: &String) -> usize {
+fn compute_1(contents: &str) -> usize {
     let bricks = parse_input(contents);
     bricks.count_disintegrable()
 }
 
-fn compute_2(contents: &String) -> usize {
+fn compute_2(contents: &str) -> usize {
     let mut bricks = parse_input(contents);
     bricks.count_total_falls()
 }
