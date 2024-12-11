@@ -143,10 +143,10 @@ fn main() {
         fs::read_to_string("inputs/d10.txt").expect("Should have been able to read the file");
 
     let result = compute_1(&contents);
-    // assert_eq!(733, result);
+    assert_eq!(733, result);
     println!("part 1: {result}");
 
     let result = compute_2(&contents);
-    // assert_eq!(6486, result);
+    assert_eq!(1514, result);
     println!("part 2: {result}");
 }
