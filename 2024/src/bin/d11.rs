@@ -58,14 +58,16 @@ fn stone_counts_after_blinks(
     if cache.contains_key(&(stone, blinks_left)) {
         return cache[&(stone, blinks_left)];
     }
-    let out = if blinks_left == 0 {
-        1
-    } else {
-        match next_stone(stone) {
-            NextStep::Singular(s) => stone_counts_after_blinks(s, blinks_left - 1, cache),
-            NextStep::Split(s1, s2) => {
-                stone_counts_after_blinks(s1, blinks_left - 1, cache)
-                    + stone_counts_after_blinks(s2, blinks_left - 1, cache)
+    let out = {
+        if blinks_left == 0 {
+            1
+        } else {
+            match next_stone(stone) {
+                NextStep::Singular(s) => stone_counts_after_blinks(s, blinks_left - 1, cache),
+                NextStep::Split(s1, s2) => {
+                    stone_counts_after_blinks(s1, blinks_left - 1, cache)
+                        + stone_counts_after_blinks(s2, blinks_left - 1, cache)
+                }
             }
         }
     };
