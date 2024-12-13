@@ -106,11 +106,14 @@ fn possible_score(machine: &Machine) -> Option<i64> {
     // PxAy - nBxAy = PyAx - nByAx
     // PxAy - PyAx = n(BxAy - ByAx)
     // n = (PxAy - PyAx) / (BxAy - ByAx)
-    // n = (Ax * Py - Px * Ay) / (Ax * By - Bx * Ay)
     //
     // Now that we know n, we can solve for m:
     //
     // m = (Py - nBy) / Ay
+    //
+    // The above math relies on Ax != 0, Ay != 0, and BxAy != ByAx
+    // There's no reason this has to be true, but it does hold,
+    // at least for my input.
     //
     // Note that these solutions may not be integers, so we can simly
     // check the final solution mA + nB = P, and if it is not satisfied
