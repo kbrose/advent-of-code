@@ -90,7 +90,7 @@ fn possible_score(machine: &Machine) -> Option<i64> {
     //
     // However, even though this looks like an optimization problem,
     // there is actually exactly one solution (or <=1 solution when restricted to
-    // non-negative integers):
+    // non-negative integers) when A and B are not zero and not collinear:
     //
     // Let Ax be the x part of A, and similar for Ay, Bx, By, Px, Py.
     //
@@ -101,7 +101,6 @@ fn possible_score(machine: &Machine) -> Option<i64> {
     // m = (Py - nBy) / Ay
     //
     // (Px - nBx) / Ax = (Py - nBy) / Ay
-    // (Px - n*Bx) / Ax = (Py - n*By) / Ay
     // (Px - nBx)Ay = (Py - nBy)Ax  # multiply by AyAx
     // PxAy - nBxAy = PyAx - nByAx
     // PxAy - PyAx = n(BxAy - ByAx)
@@ -115,7 +114,7 @@ fn possible_score(machine: &Machine) -> Option<i64> {
     // There's no reason this has to be true, but it does hold,
     // at least for my input.
     //
-    // Note that these solutions may not be integers, so we can simly
+    // Note that these solutions may not be integers, so we can simply
     // check the final solution mA + nB = P, and if it is not satisfied
     // then it is unsolvable (given the constraints).
     let n = (machine.a.x * machine.prize.y - machine.prize.x * machine.a.y)
