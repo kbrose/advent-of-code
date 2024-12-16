@@ -220,6 +220,6 @@ fn main() {
     println!("part 1: {result}");
 
     let result = compute_2(&contents);
-    // assert_eq!(262775362119547, result);
+    assert_eq!(535, result);
     println!("part 2: {result}");
 }
