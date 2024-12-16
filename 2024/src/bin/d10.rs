@@ -62,7 +62,6 @@ fn parse_input(contents: &str) -> Graph {
             ];
             let edges: Vec<Edge> = places_to_check
                 .iter()
-                .filter(|x| x.is_some())
                 .filter_map(|maybe_indexes| {
                     if let Some((new_i, new_j)) = maybe_indexes {
                         if map[*new_i][*new_j] == height + 1 {
