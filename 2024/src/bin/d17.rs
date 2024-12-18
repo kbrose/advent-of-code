@@ -9,72 +9,7 @@ struct Interpreter {
     reg_c: u64,
 }
 
-enum StepResult {
-    Out(u8),
-    Halt,
-    Continue,
-}
-
 impl Interpreter {
-    fn step(&mut self) -> StepResult {
-        let opcode = self.program.get(self.instruction_pointer);
-        let operand = self.program.get(self.instruction_pointer + 1);
-        match (opcode, operand) {
-            // 0: adv
-            (Some(0), Some(operand)) => {
-                self.reg_a /= 2_u64.pow(self.combo(*operand) as u32);
-                self.instruction_pointer += 2;
-                StepResult::Continue
-            }
-            // 1: bxl
-            (Some(1), Some(operand)) => {
-                self.reg_b ^= *operand as u64;
-                self.instruction_pointer += 2;
-                StepResult::Continue
-            }
-            // 2: bst
-            (Some(2), Some(operand)) => {
-                self.reg_b = self.combo(*operand) % 8;
-                self.instruction_pointer += 2;
-                StepResult::Continue
-            }
-            // 3: jnz
-            (Some(3), Some(operand)) => {
-                if self.reg_a == 0 {
-                    self.instruction_pointer += 2;
-                } else {
-                    self.instruction_pointer = *operand as usize;
-                }
-                StepResult::Continue
-            }
-            // 4: bxc
-            (Some(4), Some(_)) => {
-                self.reg_b ^= self.reg_c;
-                self.instruction_pointer += 2;
-                StepResult::Continue
-            }
-            // 5: out
-            (Some(5), Some(operand)) => {
-                self.instruction_pointer += 2;
-                StepResult::Out((self.combo(*operand) % 8) as u8)
-            }
-            // 6: bdv
-            (Some(6), Some(operand)) => {
-                self.reg_b = self.reg_a / 2_u64.pow(self.combo(*operand) as u32);
-                self.instruction_pointer += 2;
-                StepResult::Continue
-            }
-            // 7: cdv
-            (Some(7), Some(operand)) => {
-                self.reg_c = self.reg_a / 2_u64.pow(self.combo(*operand) as u32);
-                self.instruction_pointer += 2;
-                StepResult::Continue
-            }
-            (None, _) => StepResult::Halt,
-            _ => panic!("Unexpected state opcode {opcode:?} and operand {operand:?}"),
-        }
-    }
-
     fn combo(&self, n: u8) -> u64 {
         match n {
             0..=3 => n as u64,
@@ -87,16 +22,54 @@ impl Interpreter {
 
     fn run(&mut self) -> Vec<u8> {
         let mut out: Vec<u8> = Vec::new();
-        loop {
-            let result = self.step();
-            match result {
-                StepResult::Out(n) => {
-                    out.push(n);
+        while self.instruction_pointer < self.program.len() - 1 {
+            let opcode = self.program.get(self.instruction_pointer).unwrap();
+            let operand = self.program.get(self.instruction_pointer + 1).unwrap();
+            match opcode {
+                // 0: adv
+                0 => {
+                    self.reg_a >>= self.combo(*operand);
+                    self.instruction_pointer += 2;
                 }
-                StepResult::Halt => {
-                    break;
+                // 1: bxl
+                1 => {
+                    self.reg_b ^= *operand as u64;
+                    self.instruction_pointer += 2;
                 }
-                StepResult::Continue => {}
+                // 2: bst
+                2 => {
+                    self.reg_b = self.combo(*operand) & 0b111;
+                    self.instruction_pointer += 2;
+                }
+                // 3: jnz
+                3 => {
+                    if self.reg_a == 0 {
+                        self.instruction_pointer += 2;
+                    } else {
+                        self.instruction_pointer = *operand as usize;
+                    }
+                }
+                // 4: bxc
+                4 => {
+                    self.reg_b ^= self.reg_c;
+                    self.instruction_pointer += 2;
+                }
+                // 5: out
+                5 => {
+                    self.instruction_pointer += 2;
+                    out.push((self.combo(*operand) & 0b111) as u8);
+                }
+                // 6: bdv
+                6 => {
+                    self.reg_b = self.reg_a >> self.combo(*operand);
+                    self.instruction_pointer += 2;
+                }
+                // 7: cdv
+                7 => {
+                    self.reg_c = self.reg_a >> self.combo(*operand);
+                    self.instruction_pointer += 2;
+                }
+                _ => panic!("Unexpected state opcode {opcode} and operand {operand}"),
             }
         }
         out
@@ -167,6 +140,7 @@ fn compute_2(contents: &str) -> u64 {
                     panic!("Something has gone terribly wrong!");
                 }
                 if outs == desired_outputs {
+                    // nums is always sorted, so we can return on the first one
                     return num + i;
                 }
                 if (!outs.is_empty())
@@ -180,7 +154,7 @@ fn compute_2(contents: &str) -> u64 {
     }
 }
 
-// "Compiled" program used for reasoning about what is happening.
+// "Decompiled" program used for reasoning about what is happening.
 #[allow(dead_code)]
 fn program(mut a: u64) -> Vec<u64> {
     let mut out = vec![];
