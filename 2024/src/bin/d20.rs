@@ -153,46 +153,33 @@ fn compute_1(contents: &str) -> usize {
     cheat_counter
 }
 
+fn add(u: usize, i: i32) -> usize {
+    if i.is_negative() {
+        u.wrapping_sub(i.unsigned_abs() as usize)
+    } else {
+        u + (i as usize)
+    }
+}
+
 fn compute_2(contents: &str) -> usize {
     let race = parse_input(contents);
     let mut curr_pos = race.start;
     let mut prev_pos = race.start;
     let mut curr_cost = 0;
     let mut cheat_counter = 0;
-    // Pre-allocate this array, we're going to be reusing it inside the hot loop.
-    let mut cheat_destinations: Vec<Point> = Vec::with_capacity(4);
     while curr_pos != race.end {
         // First, iterate over the possible cheats
-        for i in 0..=20 {
-            for j in 0..=(20 - i) {
-                if i == 0 && j == 0 {
-                    continue;
-                }
-                let cost_of_cheat = (i + j) as u32;
-                cheat_destinations.clear();
-                cheat_destinations.push(Point {
-                    i: curr_pos.i + i,
-                    j: curr_pos.j + j,
-                });
-                cheat_destinations.push(Point {
-                    i: curr_pos.i.wrapping_sub(i),
-                    j: curr_pos.j.wrapping_sub(j),
-                });
-                if i != 0 && j != 0 {
-                    cheat_destinations.push(Point {
-                        i: curr_pos.i + i,
-                        j: curr_pos.j.wrapping_sub(j),
-                    });
-                    cheat_destinations.push(Point {
-                        i: curr_pos.i.wrapping_sub(i),
-                        j: curr_pos.j + j,
-                    });
-                }
-                for point in cheat_destinations.iter() {
-                    if let Some(Tile::Track(cost_at_cheat_dest)) = point.at(&race.map) {
-                        if *cost_at_cheat_dest > curr_cost + cost_of_cheat + 99 {
-                            cheat_counter += 1;
-                        }
+        for i in -20_i32..=20_i32 {
+            for j in -(20 - i.abs())..=(20 - i.abs()) {
+                let cost_of_cheat = i.unsigned_abs() + j.unsigned_abs();
+                let point = Point {
+                    i: add(curr_pos.i, i),
+                    j: add(curr_pos.j, j),
+                };
+
+                if let Some(Tile::Track(cost_at_cheat_dest)) = point.at(&race.map) {
+                    if *cost_at_cheat_dest > curr_cost + cost_of_cheat + 99 {
+                        cheat_counter += 1;
                     }
                 }
             }
