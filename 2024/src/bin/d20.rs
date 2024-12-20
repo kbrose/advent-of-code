@@ -115,45 +115,7 @@ fn show(race: &Race, cheat_1: &Point, cheat_2: &Point) {
     println!();
 }
 
-fn compute_1(contents: &str) -> usize {
-    let race = parse_input(contents);
-    let mut curr_pos = race.start;
-    let mut prev_pos = race.start;
-    let mut curr_cost = 0;
-    let mut cheat_counter = 0;
-    while curr_pos != race.end {
-        // First, iterate over the neighboring walls looking for cheats
-        for next in curr_pos
-            .neighbors()
-            .into_iter()
-            .filter(|next| (next != &prev_pos) && (next.at(&race.map) == Some(&Tile::Wall)))
-        {
-            for next_next in next.neighbors().into_iter() {
-                if let Some(Tile::Track(cost_at_cheat_dest)) = next_next.at(&race.map) {
-                    if *cost_at_cheat_dest > curr_cost + 2 + 99 {
-                        cheat_counter += 1;
-                    }
-                }
-            }
-        }
-        // Then, find the next "normal" move
-        for neighbor in curr_pos
-            .neighbors()
-            .into_iter()
-            .filter(|neighbor| (neighbor != &prev_pos))
-        {
-            if let Some(Tile::Track(c)) = neighbor.at(&race.map) {
-                prev_pos = curr_pos;
-                curr_pos = neighbor;
-                curr_cost = *c;
-                break;
-            };
-        }
-    }
-    cheat_counter
-}
-
-fn add(u: usize, i: i32) -> usize {
+fn add_usize_i32(u: usize, i: i32) -> usize {
     if i.is_negative() {
         u.wrapping_sub(i.unsigned_abs() as usize)
     } else {
@@ -161,20 +123,19 @@ fn add(u: usize, i: i32) -> usize {
     }
 }
 
-fn compute_2(contents: &str) -> usize {
-    let race = parse_input(contents);
+fn count_desired_cheats(race: Race, cheat_step_len: i32) -> u64 {
     let mut curr_pos = race.start;
     let mut prev_pos = race.start;
     let mut curr_cost = 0;
     let mut cheat_counter = 0;
     while curr_pos != race.end {
         // First, iterate over the possible cheats
-        for i in -20_i32..=20_i32 {
-            for j in -(20 - i.abs())..=(20 - i.abs()) {
+        for i in -cheat_step_len..=cheat_step_len {
+            for j in -(cheat_step_len - i.abs())..=(cheat_step_len - i.abs()) {
                 let cost_of_cheat = i.unsigned_abs() + j.unsigned_abs();
                 let point = Point {
-                    i: add(curr_pos.i, i),
-                    j: add(curr_pos.j, j),
+                    i: add_usize_i32(curr_pos.i, i),
+                    j: add_usize_i32(curr_pos.j, j),
                 };
 
                 if let Some(Tile::Track(cost_at_cheat_dest)) = point.at(&race.map) {
@@ -199,6 +160,16 @@ fn compute_2(contents: &str) -> usize {
         }
     }
     cheat_counter
+}
+
+fn compute_1(contents: &str) -> u64 {
+    let race = parse_input(contents);
+    count_desired_cheats(race, 2)
+}
+
+fn compute_2(contents: &str) -> u64 {
+    let race = parse_input(contents);
+    count_desired_cheats(race, 20)
 }
 
 fn main() {
