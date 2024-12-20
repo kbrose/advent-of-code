@@ -1,7 +1,4 @@
-use std::{
-    collections::{HashMap, HashSet},
-    fs,
-};
+use std::fs;
 
 #[derive(Debug, PartialEq, Eq)]
 enum Tile {
@@ -97,6 +94,7 @@ fn parse_input(contents: &str) -> Race {
     Race { map, start, end }
 }
 
+#[allow(dead_code)]
 fn show(race: &Race, cheat_1: &Point, cheat_2: &Point) {
     for (i, row) in race.map.iter().enumerate() {
         for (j, tile) in row.iter().enumerate() {
@@ -119,10 +117,10 @@ fn show(race: &Race, cheat_1: &Point, cheat_2: &Point) {
 
 fn compute_1(contents: &str) -> usize {
     let race = parse_input(contents);
-    let mut cheats: HashMap<u32, Vec<(Point, Point)>> = HashMap::new();
     let mut curr_pos = race.start;
     let mut prev_pos = race.start;
     let mut curr_cost = 0;
+    let mut cheat_counter = 0;
     while curr_pos != race.end {
         // First, iterate over the neighboring walls looking for cheats
         for next in curr_pos
@@ -132,15 +130,8 @@ fn compute_1(contents: &str) -> usize {
         {
             for next_next in next.neighbors().into_iter() {
                 if let Some(Tile::Track(cost_at_cheat_dest)) = next_next.at(&race.map) {
-                    if *cost_at_cheat_dest > curr_cost + 2 {
-                        if *cost_at_cheat_dest - curr_cost - 2 == 3 {
-                            println!("{curr_cost}, {cost_at_cheat_dest}");
-                            show(&race, &next, &next_next);
-                        }
-                        cheats
-                            .entry(*cost_at_cheat_dest - curr_cost - 2)
-                            .or_default()
-                            .push((next, next_next));
+                    if *cost_at_cheat_dest > curr_cost + 2 + 99 {
+                        cheat_counter += 1;
                     }
                 }
             }
@@ -159,49 +150,48 @@ fn compute_1(contents: &str) -> usize {
             };
         }
     }
-    cheats
-        .iter()
-        .filter_map(|(k, v)| if *k >= 100 { Some(v.len()) } else { None })
-        .sum()
+    cheat_counter
 }
 
 fn compute_2(contents: &str) -> usize {
     let race = parse_input(contents);
-    let mut cheats: HashMap<u32, HashSet<(Point, Point)>> = HashMap::new();
     let mut curr_pos = race.start;
     let mut prev_pos = race.start;
     let mut curr_cost = 0;
+    let mut cheat_counter = 0;
+    // Pre-allocate this array, we're going to be reusing it inside the hot loop.
+    let mut cheat_destinations: Vec<Point> = Vec::with_capacity(4);
     while curr_pos != race.end {
         // First, iterate over the possible cheats
         for i in 0..=20 {
             for j in 0..=(20 - i) {
+                if i == 0 && j == 0 {
+                    continue;
+                }
                 let cost_of_cheat = (i + j) as u32;
-                for point in [
-                    Point {
-                        i: curr_pos.i + i,
-                        j: curr_pos.j + j,
-                    },
-                    Point {
-                        i: curr_pos.i.wrapping_sub(i),
-                        j: curr_pos.j + j,
-                    },
-                    Point {
+                cheat_destinations.clear();
+                cheat_destinations.push(Point {
+                    i: curr_pos.i + i,
+                    j: curr_pos.j + j,
+                });
+                cheat_destinations.push(Point {
+                    i: curr_pos.i.wrapping_sub(i),
+                    j: curr_pos.j.wrapping_sub(j),
+                });
+                if i != 0 && j != 0 {
+                    cheat_destinations.push(Point {
                         i: curr_pos.i + i,
                         j: curr_pos.j.wrapping_sub(j),
-                    },
-                    Point {
+                    });
+                    cheat_destinations.push(Point {
                         i: curr_pos.i.wrapping_sub(i),
-                        j: curr_pos.j.wrapping_sub(j),
-                    },
-                ]
-                .into_iter()
-                {
+                        j: curr_pos.j + j,
+                    });
+                }
+                for point in cheat_destinations.iter() {
                     if let Some(Tile::Track(cost_at_cheat_dest)) = point.at(&race.map) {
-                        if *cost_at_cheat_dest > curr_cost + cost_of_cheat {
-                            cheats
-                                .entry(*cost_at_cheat_dest - curr_cost - cost_of_cheat)
-                                .or_default()
-                                .insert((curr_pos, point));
+                        if *cost_at_cheat_dest > curr_cost + cost_of_cheat + 99 {
+                            cheat_counter += 1;
                         }
                     }
                 }
@@ -221,10 +211,7 @@ fn compute_2(contents: &str) -> usize {
             };
         }
     }
-    cheats
-        .iter()
-        .filter_map(|(k, v)| if *k >= 100 { Some(v.len()) } else { None })
-        .sum()
+    cheat_counter
 }
 
 fn main() {
@@ -232,11 +219,10 @@ fn main() {
         fs::read_to_string("inputs/d20.txt").expect("Should have been able to read the file");
 
     let result = compute_1(&contents);
-    // assert_eq!(1307, result);
+    assert_eq!(1307, result);
     println!("part 1: {result}");
 
     let result = compute_2(&contents);
-    assert!(result < 1092185);
-    // assert_eq!(262775362119547, result);
+    assert_eq!(986545, result);
     println!("part 2: {result}");
 }
