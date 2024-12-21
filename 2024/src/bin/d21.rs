@@ -293,43 +293,47 @@ fn get_level_0_costs() -> LevelCost {
     level_0_costs
 }
 
+fn get_cost<T: Button + PartialEq + Eq + Copy>(curr: T, dest: T, cost_map: &LevelCost) -> u64 {
+    if curr == dest {
+        return 1;
+    }
+    let mut todo: BinaryHeap<Reverse<Step<T>>> = BinaryHeap::new();
+    // Initialize the min heap with the possible next steps
+    // We know that we'll always start from an "A" position.
+    for (new_loc, move_step) in curr.towards(&dest).into_iter().flatten() {
+        todo.push(Reverse(Step {
+            cost: cost_map[&(MoveButton::A, move_step)],
+            destination: new_loc,
+            move_step,
+        }));
+    }
+    while let Some(Reverse(step)) = todo.pop() {
+        if step.destination == dest && step.move_step != MoveButton::A {
+            todo.push(Reverse(Step {
+                cost: step.cost + cost_map[&(step.move_step, MoveButton::A)],
+                destination: step.destination,
+                move_step: MoveButton::A,
+            }));
+        } else if step.destination == dest {
+            return step.cost;
+        }
+        for (new_loc, move_step) in step.destination.towards(&dest).into_iter().flatten() {
+            todo.push(Reverse(Step {
+                cost: step.cost + cost_map[&(step.move_step, move_step)],
+                destination: new_loc,
+                move_step,
+            }));
+        }
+    }
+    unreachable!()
+}
+
 fn next_level_costs(cost_map: LevelCost) -> LevelCost {
     let mut next_level_cost_map: LevelCost = HashMap::new();
 
     for curr in MoveButton::values() {
-        'dest_loop: for dest in MoveButton::values() {
-            if curr == dest {
-                next_level_cost_map.insert((curr, dest), 1);
-                continue;
-            }
-            let mut todo: BinaryHeap<Reverse<Step<MoveButton>>> = BinaryHeap::new();
-            for (new_loc, move_step) in curr.towards(&dest).into_iter().flatten() {
-                todo.push(Reverse(Step {
-                    cost: cost_map[&(MoveButton::A, move_step)],
-                    destination: new_loc,
-                    move_step,
-                }));
-            }
-            while let Some(Reverse(step)) = todo.pop() {
-                if step.destination == dest && step.move_step != MoveButton::A {
-                    todo.push(Reverse(Step {
-                        cost: step.cost + cost_map[&(step.move_step, MoveButton::A)],
-                        destination: step.destination,
-                        move_step: MoveButton::A,
-                    }));
-                } else if step.destination == dest {
-                    next_level_cost_map.insert((curr, dest), step.cost);
-                    continue 'dest_loop;
-                }
-                for (new_loc, move_step) in step.destination.towards(&dest).into_iter().flatten() {
-                    todo.push(Reverse(Step {
-                        cost: step.cost + cost_map[&(step.move_step, move_step)],
-                        destination: new_loc,
-                        move_step,
-                    }));
-                }
-            }
-            unreachable!()
+        for dest in MoveButton::values() {
+            next_level_cost_map.insert((curr, dest), get_cost(curr, dest, &cost_map));
         }
     }
 
@@ -339,41 +343,10 @@ fn next_level_costs(cost_map: LevelCost) -> LevelCost {
 fn cost_of_code(code: &[NumpadButton], cost_map: &LevelCost) -> u64 {
     let mut total_cost = 0;
 
-    let mut curr = &NumpadButton::A;
+    let mut curr = NumpadButton::A;
     for dest in code.iter() {
-        if curr == dest {
-            total_cost += 1;
-            curr = dest;
-        } else {
-            let mut todo: BinaryHeap<Reverse<Step<NumpadButton>>> = BinaryHeap::new();
-            for (new_loc, move_step) in curr.towards(dest).into_iter().flatten() {
-                todo.push(Reverse(Step {
-                    cost: cost_map[&(MoveButton::A, move_step)],
-                    destination: new_loc,
-                    move_step,
-                }));
-            }
-            while let Some(Reverse(step)) = todo.pop() {
-                if &step.destination == dest && step.move_step != MoveButton::A {
-                    todo.push(Reverse(Step {
-                        cost: step.cost + cost_map[&(step.move_step, MoveButton::A)],
-                        destination: step.destination,
-                        move_step: MoveButton::A,
-                    }));
-                } else if &step.destination == dest {
-                    curr = dest;
-                    total_cost += step.cost;
-                    break;
-                }
-                for (new_loc, move_step) in step.destination.towards(dest).into_iter().flatten() {
-                    todo.push(Reverse(Step {
-                        cost: step.cost + cost_map[&(step.move_step, move_step)],
-                        destination: new_loc,
-                        move_step,
-                    }));
-                }
-            }
-        }
+        total_cost += get_cost(curr, *dest, cost_map);
+        curr = *dest;
     }
 
     total_cost
