@@ -49,7 +49,7 @@ fn parse_input(contents: &str) -> (Map, Guard) {
     (map, guard)
 }
 
-fn process_path(mut map: Map, mut guard: Guard) -> usize {
+fn process_path(map: &mut Map, mut guard: Guard) -> usize {
     loop {
         let (new_i, new_j) = match guard.dir {
             Dir::Left => (guard.pos.0, guard.pos.1 - 1),
@@ -87,19 +87,25 @@ fn process_path(mut map: Map, mut guard: Guard) -> usize {
 }
 
 fn compute_1(contents: &str) -> usize {
-    let (map, guard) = parse_input(contents);
-    process_path(map, guard)
+    let (mut map, guard) = parse_input(contents);
+    process_path(&mut map, guard)
 }
 
 fn compute_2(contents: &str) -> u64 {
     let (map, guard) = parse_input(contents);
+    let (initial_i, initial_j) = guard.pos;
     let mut counter = 0;
+    let mut initial_path_map = map.clone();
+    process_path(&mut initial_path_map, guard.clone());
     for i in 0..map.len() {
         for j in 0..map[i].len() {
-            if map[i][j] == Tile::Unvisited {
+            if i == initial_i && j == initial_j {
+                continue;
+            }
+            if let Tile::Visited(_) = initial_path_map[i][j] {
                 let mut new_map = map.clone();
                 new_map[i][j] = Tile::Obstacle;
-                if process_path(new_map, guard.clone()) == 0 {
+                if process_path(&mut new_map, guard.clone()) == 0 {
                     counter += 1;
                 }
             }
@@ -113,10 +119,10 @@ fn main() {
         fs::read_to_string("inputs/d06.txt").expect("Should have been able to read the file");
 
     let result = compute_1(&contents);
-    // assert_eq!(4656, result);
+    assert_eq!(4656, result);
     println!("part 1: {result}");
 
     let result = compute_2(&contents);
-    // assert_eq!(262775362119547, result);
+    assert_eq!(1575, result);
     println!("part 2: {result}");
 }

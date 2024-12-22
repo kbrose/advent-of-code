@@ -39,6 +39,9 @@ fn satisfiable(mut calibration: Calibration) -> bool {
     if calibration.operands.len() == 1 {
         // base case
         calibration.operands[0] == calibration.target
+    } else if calibration.operands.last().unwrap() > &calibration.target {
+        // None of our operations result in smaller values
+        return false;
     } else {
         let operand = calibration.operands.pop().unwrap();
         let mut operands_plus = calibration.operands.clone();
@@ -77,6 +80,9 @@ fn satisfiable_2(mut calibration: Calibration) -> bool {
     if calibration.operands.len() == 1 {
         // base case
         calibration.operands[0] == calibration.target
+    } else if calibration.operands.last().unwrap() > &calibration.target {
+        // None of our operations result in smaller values
+        return false;
     } else {
         let operand = calibration.operands.pop().unwrap();
         let mut operands_plus = calibration.operands.clone();
@@ -100,10 +106,9 @@ fn satisfiable_2(mut calibration: Calibration) -> bool {
                 true
             } else {
                 let mut operands_conc = calibration.operands.clone();
-                let s1 = format!("{}", operand);
-                let s2 = format!("{}", operands_conc[calibration.operands.len() - 1]);
+                let operand2 = operands_conc[calibration.operands.len() - 1];
                 operands_conc[calibration.operands.len() - 1] =
-                    format!("{s1}{s2}").parse().unwrap();
+                    (operand * 10_i64.pow(operand2.ilog10() + 1)) + operand2;
                 satisfiable_2(Calibration {
                     target: calibration.target,
                     operands: operands_conc,
