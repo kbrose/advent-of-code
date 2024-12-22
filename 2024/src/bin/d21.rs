@@ -268,6 +268,15 @@ fn get_cost<T: Button>(curr: T, dest: T, cost_map: &LevelCost) -> u64 {
     let mut todo: BinaryHeap<Reverse<Step<T>>> = BinaryHeap::new();
     // Initialize the min heap with the possible next steps
     // We know that we'll always start from an "A" position.
+    //
+    // Consider this sequence from the example:
+    //
+    // robot 3 (level 3) |            3                          7          9                 A
+    // robot 2 (level 2) |        ^   A       ^^        <<       A     >>   A        vvv      A
+    // robot 1 (level 1) |    <   A > A   <   AA  v <   AA >>  ^ A  v  AA ^ A  v <   AAA >  ^ A
+    // human   (level 0) | v<<A>>^AvA^Av<<A>>^AAv<A<A>>^AAvAA<^A>Av<A>^AA<A>Av<A<A>>^AAAvA<^A>A
+    //
+    // Whenever a button is pushed at level n, all levels below it are at their "A" buttons.
     for (new_loc, move_step) in curr.towards(&dest).into_iter().flatten() {
         todo.push(Reverse(Step {
             cost: cost_map[&(MoveButton::Action, move_step)],
@@ -277,12 +286,16 @@ fn get_cost<T: Button>(curr: T, dest: T, cost_map: &LevelCost) -> u64 {
     }
     while let Some(Reverse(step)) = todo.pop() {
         if step.destination == dest && step.move_step != MoveButton::Action {
+            // We're not done iterating yet. We need to actually _push_ the button `dest`,
+            // which means the level above us needs to push it's A button. Add
+            // that step to the heap.
             todo.push(Reverse(Step {
                 cost: step.cost + cost_map[&(step.move_step, MoveButton::Action)],
                 destination: step.destination,
                 move_step: MoveButton::Action,
             }));
         } else if step.destination == dest {
+            // We've reached the destination and the level above us has pushed it's A button.
             return step.cost;
         }
         for (new_loc, move_step) in step.destination.towards(&dest).into_iter().flatten() {
