@@ -37,13 +37,13 @@ impl Point {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash, PartialOrd, Ord)]
 enum MoveButton {
     Up,
     Down,
     Left,
     Right,
-    A,
+    Action,
 }
 
 impl MoveButton {
@@ -54,27 +54,29 @@ impl MoveButton {
             MoveButton::Down,
             MoveButton::Left,
             MoveButton::Right,
-            MoveButton::A,
+            MoveButton::Action,
         ]
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, PartialOrd, Ord)]
 enum NumpadButton {
-    A,
-    B0,
-    B1,
-    B2,
-    B3,
-    B4,
-    B5,
-    B6,
-    B7,
-    B8,
-    B9,
+    // Explicitly set the discriminants of the numpad buttons to their values.
+    // Used in computing the number of a given code (where the A button is ignored).
+    B0 = 0,
+    B1 = 1,
+    B2 = 2,
+    B3 = 3,
+    B4 = 4,
+    B5 = 5,
+    B6 = 6,
+    B7 = 7,
+    B8 = 8,
+    B9 = 9,
+    Action,
 }
 
-trait Button: Sized {
+trait Button: Ord + Copy {
     fn location(&self) -> Point;
     fn towards(&self, other: &Self) -> [Option<(Self, MoveButton)>; 2];
     fn from_point(point: Point) -> Self;
@@ -87,7 +89,7 @@ impl Button for MoveButton {
             MoveButton::Down => Point { i: 1, j: 1 },
             MoveButton::Left => Point { i: 1, j: 0 },
             MoveButton::Right => Point { i: 1, j: 2 },
-            MoveButton::A => Point { i: 0, j: 2 },
+            MoveButton::Action => Point { i: 0, j: 2 },
         }
     }
 
@@ -97,7 +99,7 @@ impl Button for MoveButton {
             Point { i: 1, j: 1 } => MoveButton::Down,
             Point { i: 1, j: 0 } => MoveButton::Left,
             Point { i: 1, j: 2 } => MoveButton::Right,
-            Point { i: 0, j: 2 } => MoveButton::A,
+            Point { i: 0, j: 2 } => MoveButton::Action,
             _ => panic!(),
         }
     }
@@ -128,7 +130,7 @@ impl Button for MoveButton {
 impl Button for NumpadButton {
     fn location(&self) -> Point {
         match self {
-            NumpadButton::A => Point { i: 3, j: 2 },
+            NumpadButton::Action => Point { i: 3, j: 2 },
             NumpadButton::B0 => Point { i: 3, j: 1 },
             NumpadButton::B1 => Point { i: 2, j: 0 },
             NumpadButton::B2 => Point { i: 2, j: 1 },
@@ -144,7 +146,7 @@ impl Button for NumpadButton {
 
     fn from_point(point: Point) -> Self {
         match point {
-            Point { i: 3, j: 2 } => NumpadButton::A,
+            Point { i: 3, j: 2 } => NumpadButton::Action,
             Point { i: 3, j: 1 } => NumpadButton::B0,
             Point { i: 2, j: 0 } => NumpadButton::B1,
             Point { i: 2, j: 1 } => NumpadButton::B2,
@@ -191,10 +193,9 @@ fn parse_input(contents: &str) -> Vec<Vec<NumpadButton>> {
         .trim()
         .split('\n')
         .map(|line| {
-            // Starts at button A
             line.chars()
                 .map(|c| match c {
-                    'A' => NumpadButton::A,
+                    'A' => NumpadButton::Action,
                     '0' => NumpadButton::B0,
                     '1' => NumpadButton::B1,
                     '2' => NumpadButton::B2,
@@ -216,46 +217,10 @@ fn code_to_num(code: &[NumpadButton]) -> u64 {
     let mut num = 0;
     for button in code {
         match button {
-            NumpadButton::A => {}
-            NumpadButton::B0 => {
+            NumpadButton::Action => {}
+            b => {
                 num *= 10;
-                num += 0;
-            }
-            NumpadButton::B1 => {
-                num *= 10;
-                num += 1;
-            }
-            NumpadButton::B2 => {
-                num *= 10;
-                num += 2;
-            }
-            NumpadButton::B3 => {
-                num *= 10;
-                num += 3;
-            }
-            NumpadButton::B4 => {
-                num *= 10;
-                num += 4;
-            }
-            NumpadButton::B5 => {
-                num *= 10;
-                num += 5;
-            }
-            NumpadButton::B6 => {
-                num *= 10;
-                num += 6;
-            }
-            NumpadButton::B7 => {
-                num *= 10;
-                num += 7;
-            }
-            NumpadButton::B8 => {
-                num *= 10;
-                num += 8;
-            }
-            NumpadButton::B9 => {
-                num *= 10;
-                num += 9;
+                num += *b as u64; // Making use of explicit discriminants
             }
         }
     }
@@ -265,21 +230,24 @@ fn code_to_num(code: &[NumpadButton]) -> u64 {
 type LevelCost = HashMap<(MoveButton, MoveButton), u64>;
 
 #[derive(Debug, PartialEq, Eq)]
-struct Step<T> {
+struct Step<T: Button> {
     cost: u64,
     destination: T,
     move_step: MoveButton,
 }
 
-impl<T: PartialEq + Eq> PartialOrd for Step<T> {
+impl<T: Button> PartialOrd for Step<T> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl<T: PartialEq + Eq> Ord for Step<T> {
+impl<T: Button> Ord for Step<T> {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.cost.cmp(&other.cost)
+        self.cost
+            .cmp(&other.cost)
+            .then(self.destination.cmp(&other.destination))
+            .then(self.move_step.cmp(&other.move_step))
     }
 }
 
@@ -293,7 +261,7 @@ fn get_level_0_costs() -> LevelCost {
     level_0_costs
 }
 
-fn get_cost<T: Button + PartialEq + Eq + Copy>(curr: T, dest: T, cost_map: &LevelCost) -> u64 {
+fn get_cost<T: Button>(curr: T, dest: T, cost_map: &LevelCost) -> u64 {
     if curr == dest {
         return 1;
     }
@@ -302,17 +270,17 @@ fn get_cost<T: Button + PartialEq + Eq + Copy>(curr: T, dest: T, cost_map: &Leve
     // We know that we'll always start from an "A" position.
     for (new_loc, move_step) in curr.towards(&dest).into_iter().flatten() {
         todo.push(Reverse(Step {
-            cost: cost_map[&(MoveButton::A, move_step)],
+            cost: cost_map[&(MoveButton::Action, move_step)],
             destination: new_loc,
             move_step,
         }));
     }
     while let Some(Reverse(step)) = todo.pop() {
-        if step.destination == dest && step.move_step != MoveButton::A {
+        if step.destination == dest && step.move_step != MoveButton::Action {
             todo.push(Reverse(Step {
-                cost: step.cost + cost_map[&(step.move_step, MoveButton::A)],
+                cost: step.cost + cost_map[&(step.move_step, MoveButton::Action)],
                 destination: step.destination,
-                move_step: MoveButton::A,
+                move_step: MoveButton::Action,
             }));
         } else if step.destination == dest {
             return step.cost;
@@ -343,7 +311,7 @@ fn next_level_costs(cost_map: LevelCost) -> LevelCost {
 fn cost_of_code(code: &[NumpadButton], cost_map: &LevelCost) -> u64 {
     let mut total_cost = 0;
 
-    let mut curr = NumpadButton::A;
+    let mut curr = NumpadButton::Action;
     for dest in code.iter() {
         total_cost += get_cost(curr, *dest, cost_map);
         curr = *dest;
