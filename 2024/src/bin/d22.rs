@@ -17,8 +17,8 @@ fn parse_input(contents: &str) -> Vec<u64> {
 fn next(mut n: u64) -> u64 {
     // Step 1
     n = ((n << 6) ^ n) & PRUNER;
-    // Step 2
-    n = ((n >> 5) ^ n) & PRUNER;
+    // Step 2 - note, no actual need to do (& PRUNER) here.
+    n = (n >> 5) ^ n;
     // Step 3
     ((n << 11) ^ n) & PRUNER
 }
@@ -36,10 +36,11 @@ fn compute_1(contents: &str) -> u64 {
 }
 
 fn compute_2(contents: &str) -> u64 {
-    let mut prices_after_sequence: HashMap<u64, Vec<u64>> = HashMap::new();
+    let mut prices_after_sequence: HashMap<u64, u64> = HashMap::new();
     let nums = parse_input(contents);
+    let mut best_observed_price_total = 0;
     // We're going to bit pack the sequence into the "curr_sequence" variable.
-    // Consider the binary layout 0b_...._aaaaa_bbbbb_ccccc_ddddd.
+    // Consider the binary layout 0b_aaaaa_bbbbb_ccccc_ddddd.
     // The aaaaa bits will correspond to the first delta in the sequence,
     // bbbbb the second, etc.
     let mut curr_sequence = 0;
@@ -56,23 +57,15 @@ fn compute_2(contents: &str) -> u64 {
             curr_sequence += next_price.abs_diff(curr_price);
             if next_price > curr_price {
                 // If necessary, a sign bit is added at the fifth bit.
-                curr_sequence += 16;
+                curr_sequence += 0b_10000;
             }
             if i >= 3 && !observed_sequences_this_num.contains(&curr_sequence) {
-                prices_after_sequence
-                    .entry(curr_sequence)
-                    .or_default()
-                    .push(next_price);
+                let price = prices_after_sequence.entry(curr_sequence).or_default();
+                *price += next_price;
+                best_observed_price_total = std::cmp::max(*price, best_observed_price_total);
                 observed_sequences_this_num.insert(curr_sequence);
             }
             curr_price = next_price;
-        }
-    }
-    let mut best_observed_price_total = 0;
-    for v in prices_after_sequence.values() {
-        let sum = v.iter().sum();
-        if sum > best_observed_price_total {
-            best_observed_price_total = sum;
         }
     }
     best_observed_price_total
