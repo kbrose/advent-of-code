@@ -36,19 +36,28 @@ fn compute_1(contents: &str) -> u64 {
 }
 
 fn compute_2(contents: &str) -> u64 {
-    let mut prices_after_sequence: HashMap<[i8; 4], Vec<u64>> = HashMap::new();
+    let mut prices_after_sequence: HashMap<u64, Vec<u64>> = HashMap::new();
     let nums = parse_input(contents);
-    let mut curr_sequence: [i8; 4] = [0; 4];
+    // We're going to bit pack the sequence into the "curr_sequence" variable.
+    // Consider the binary layout 0b_...._aaaaa_bbbbb_ccccc_ddddd.
+    // The aaaaa bits will correspond to the first delta in the sequence,
+    // bbbbb the second, etc.
+    let mut curr_sequence = 0;
     for mut n in nums {
         let mut curr_price = n % 10;
-        let mut observed_sequences_this_num: HashSet<[i8; 4]> = HashSet::new();
+        let mut observed_sequences_this_num: HashSet<u64> = HashSet::new();
         for i in 0..2000 {
             n = next(n);
             let next_price = n % 10;
-            for j in 0..3 {
-                curr_sequence[j] = curr_sequence[j + 1];
+            curr_sequence <<= 5;
+            curr_sequence &= 0b_11111_11111_11111_11111;
+            // the (absolute) difference is between 0 and 9 inclusive, so
+            // it will fit in the first four bits of curr_sequence
+            curr_sequence += next_price.abs_diff(curr_price);
+            if next_price > curr_price {
+                // If necessary, a sign bit is added at the fifth bit.
+                curr_sequence += 16;
             }
-            curr_sequence[3] = (next_price as i8) - (curr_price as i8);
             if i >= 3 && !observed_sequences_this_num.contains(&curr_sequence) {
                 prices_after_sequence
                     .entry(curr_sequence)
