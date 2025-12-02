@@ -40,15 +40,11 @@ fn make_new(year: u32, day: u8) -> Result<(), String> {
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     if args.get(1) == Some(&"verify".to_string()) {
-        verify(args)
+        verify(args);
     } else if args.get(1) == Some(&"new".to_string()) {
-        new(args)
+        new(args);
     } else if args.len() != 3 {
-        eprintln!("Usage:");
-        eprintln!("  {} test", args[0]);
-        eprintln!("  {} <year> <day>", args[0]);
-        eprintln!("  {} new <year> <day>", args[0]);
-        std::process::exit(1);
+        usage(args);
     } else {
         run_specific_day(args);
     }
@@ -56,7 +52,7 @@ fn main() {
 
 fn usage(args: Vec<String>) {
     eprintln!("Usage:");
-    eprintln!("  {} test", args[0]);
+    eprintln!("  {} verify [<year>]", args[0]);
     eprintln!("  {} <year> <day>", args[0]);
     eprintln!("  {} new <year> <day>", args[0]);
 }
@@ -96,24 +92,43 @@ fn new(args: Vec<String>) {
 }
 
 fn verify(args: Vec<String>) {
-    if args.len() == 2 {
-        println!("                       1 1 1 1 1 1 1 1 1 1 2 2 2 2 2 2");
-        println!("     1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5");
+    let requested_year = args
+        .get(2)
+        .map(|s| s.parse::<u32>().expect("Unable to parse {s} as year"));
+    if args.len() <= 3 {
         let mut problem_runtimes = Vec::new();
-        let years: Vec<Box<dyn Year>> = vec![
+        let mut years: Vec<Box<dyn Year>> = vec![
             Box::new(y2023::Year {}),
             Box::new(y2024::Year {}),
             Box::new(y2025::Year {}),
         ];
+        years = years
+            .into_iter()
+            .filter(|year| requested_year.is_none() || Some(year.year()) == requested_year)
+            .collect();
+        if years.is_empty() {
+            eprintln!("Unknown year {requested_year:?} was requested");
+            return;
+        }
+        println!("                       1 1 1 1 1 1 1 1 1 1 2 2 2 2 2 2");
+        println!("     1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5");
         for year in years {
             print!("{} ", year.year());
-            for (day, problem) in year.problems() {
+            let problems = year.problems();
+            let mut days: Vec<u8> = problems.keys().map(|d| *d).collect();
+            days.sort();
+            for day in days {
+                let problem = problems.get(&day).unwrap();
                 // Time the test
                 let start = std::time::Instant::now();
-                problem.verify();
+                let result = problem.verify();
                 let duration = start.elapsed();
-                problem_runtimes.push((duration, (2023, day)));
-                print!("| ");
+                problem_runtimes.push((duration, (year.year(), day)));
+                if result {
+                    print!("| ");
+                } else {
+                    print!("X ");
+                }
                 std::io::stdout().flush().unwrap();
             }
             println!();
@@ -121,11 +136,12 @@ fn verify(args: Vec<String>) {
         println!("\nSlowest runtimes:");
         problem_runtimes.sort();
         for n in 0..5 {
-            let (duration, (year, day)) = problem_runtimes.iter().nth_back(n).unwrap();
-            println!(
-                "y{year} d{day:0>2} took {:.3}s to run.",
-                duration.as_secs_f32()
-            );
+            if let Some((duration, (year, day))) = problem_runtimes.iter().nth_back(n) {
+                println!(
+                    "y{year} d{day:0>2} took {:.3}s to run.",
+                    duration.as_secs_f32()
+                );
+            }
         }
     } else {
         usage(args);

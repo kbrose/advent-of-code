@@ -63,7 +63,7 @@ impl YearTrait for Year {
         problems
     }
 
-    fn year(&self) -> String {
-        "2025".to_string()
+    fn year(&self) -> u32 {
+        2025
     }
 }

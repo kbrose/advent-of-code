@@ -93,8 +93,7 @@ pub trait Problem {
     }
 
     /// Test that parts 1 and 2 both output their expected values.
-    /// Will panic if they do not.
-    fn verify(&self) {
+    fn verify(&self) -> bool {
         let ComputedValues {
             expected1,
             out1,
@@ -102,18 +101,6 @@ pub trait Problem {
             out2,
         } = self.get_all_computed_values();
 
-        if out1 != expected1 {
-            panic!(
-                "Error in {} part 1: {out1} != {expected1}",
-                self.source_code_file()
-            )
-        }
-
-        if out2 != expected2 {
-            panic!(
-                "Error in {} part 2: {out2} != {expected2}",
-                self.source_code_file()
-            )
-        }
+        out1 == expected1 && out2 == expected2
     }
 }
