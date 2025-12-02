@@ -38,11 +38,23 @@ fn sum_invalid_part_1(lo: u64, hi: u64) -> u64 {
         if base_end * (10_u64.pow(digits / 2)) + base_end > hi {
             base_end -= 1;
         }
-        // There's probably a closed formula for this. It's NOT a triangular number, although
-        // I'm guessing it can be derived similarly to the triangular number formula.
-        (base_start..=base_end)
-            .map(|i| i + i * (10_u64.pow(digits / 2)))
-            .sum()
+        // Closed form solution for the sum of the numbers:
+        // We want to sum a sequence like
+        //  123123 + 124124 + 125125 + ... + 234234
+        // First, note that this is equivalent to
+        //       123 +    124 +    125 + ... +    234
+        //  + 123000 + 124000 + 125000 + ... + 234000
+        //  = 123 + 124 + 125 + ... + 234 + 1000 * (123 + 124 + 125 + ... + 234)
+        // So if N is equal to 123 + 124 + 125 + ... + 234, then the total sum
+        // is N + N * 1000.
+        // The sum of numbers between a and b (aka N) can be derived by taking the
+        // b'th triangular number minus the (a-1)'th triangular number.
+        // b * (b + 1)   (a - 1) * a   b * (b + 1) - (a - 1) * a
+        // ––––––––––– - ––––––––––– = –––––––––––––––––––––––––
+        //     2              2                   2
+        // Note that base_start is guaranteed to be > 0 since we don't allow preceding 0s.
+        let out = (base_end * (base_end + 1) - (base_start - 1) * base_start) / 2;
+        out + out * (10_u64.pow(digits / 2))
     } else {
         0
     }
