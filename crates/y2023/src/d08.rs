@@ -109,22 +109,44 @@ fn compute_1(contents: &str) -> u64 {
     counter
 }
 
-fn argmin(v: &[usize]) -> usize {
-    let mut i = 0;
-    let mut curr_min = usize::MAX;
-    for (j, v_j) in v.iter().enumerate() {
-        if *v_j < curr_min {
-            i = j;
-            curr_min = *v_j;
-        }
+// fn argmin(v: &[usize]) -> usize {
+//     let mut i = 0;
+//     let mut curr_min = usize::MAX;
+//     for (j, v_j) in v.iter().enumerate() {
+//         if *v_j < curr_min {
+//             i = j;
+//             curr_min = *v_j;
+//         }
+//     }
+//     i
+// }
+
+/// Implement Euclid's algorithm
+/// https://en.wikipedia.org/wiki/Euclidean_algorithm
+fn gcd(a: usize, b: usize) -> usize {
+    if a == 0 && b == 0 {
+        return 0;
     }
-    i
+    let (mut a, mut b) = { if b < a { (b, a) } else { (a, b) } };
+    while b != 0 {
+        let prev = b;
+        b = a % b;
+        a = prev;
+    }
+    a
+}
+
+fn lcm(a: usize, b: usize) -> usize {
+    if a == 0 && b == 0 {
+        0
+    } else {
+        a / gcd(a, b) * b
+    }
 }
 
 fn compute_2(contents: &str) -> usize {
     let input = parse_inputs(&contents);
     let nodes = Nodes { nodes: input.nodes };
-    // nodes.curr_indexes = nodes.initial_indexes();
 
     let mut cycles = vec![];
     for mut node_index in nodes.initial_indexes() {
@@ -163,18 +185,22 @@ fn compute_2(contents: &str) -> usize {
         .iter()
         .flat_map(|c| c.terminals.iter().map(|_| c.length))
         .collect();
-    let mut steps: Vec<usize> = cycles
+    let steps: Vec<usize> = cycles
         .iter()
         .flat_map(|c| c.terminals.iter().map(|t| c.warmup + t))
         .collect();
-    // for c in cycles {
-    //     println!("{c:?}");
+    // SIMPLIFICATION: This was not guaranteed in the problem text, but at least in my input
+    // the length of the cycle is always equal to the length of the warmup and the terminal.
+    // This lets us simplify things to just looking at the least common mulitple.
+    assert_eq!(lengths, steps);
+
+    lengths.into_iter().reduce(|a, b| lcm(a, b)).unwrap()
+
+    // while steps.iter().any(|s| s != &steps[0]) {
+    //     let cycle_index = argmin(&steps);
+    //     steps[cycle_index] += lengths[cycle_index];
     // }
-    while steps.iter().any(|s| s != &steps[0]) {
-        let cycle_index = argmin(&steps);
-        steps[cycle_index] += lengths[cycle_index];
-    }
-    steps[0]
+    // steps[0]
 }
 
 pub(crate) struct Day {}
@@ -195,5 +221,32 @@ impl Problem for Day {
     }
     fn expected2(&self) -> String {
         "8245452805243".to_string()
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_gcd() {
+        assert_eq!(gcd(12, 18), 6);
+        assert_eq!(gcd(18, 12), 6);
+        assert_eq!(gcd(12, 12), 12);
+        assert_eq!(gcd(12, 1), 1);
+        assert_eq!(gcd(3, 12), 3);
+        assert_eq!(gcd(1, 0), 1);
+        assert_eq!(gcd(0, 0), 0);
+    }
+
+    #[test]
+    fn test_lcm() {
+        assert_eq!(lcm(12, 18), 36);
+        assert_eq!(lcm(18, 12), 36);
+        assert_eq!(lcm(12, 12), 12);
+        assert_eq!(lcm(12, 1), 12);
+        assert_eq!(lcm(3, 12), 12);
+        assert_eq!(lcm(1, 0), 0);
+        assert_eq!(lcm(0, 0), 0);
     }
 }
