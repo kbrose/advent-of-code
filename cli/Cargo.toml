@@ -1,0 +1,10 @@
+[package]
+name = "cli"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+shared = { path = "../crates/shared" }
+y2023 = { path = "../crates/y2023" }
+y2024 = { path = "../crates/y2024" }
+y2025 = { path = "../crates/y2025" }

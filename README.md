@@ -30,11 +30,20 @@ Verify that outputs match their expected values for all days like this:
 cargo run --release verify
 ```
 
+### Run unit tests
+
+There's not many unit tests, but they can be run with
+
+```bash
+cargo test
+# Or if you just want to run tests for one year
+cargo test -p y2025
+```
+
 ## File organization
 
 ```bash
-├── src
-│   └── main.rs  # CLI runner
+├── cli          # CLI runner
 ├── crates
 │   ├── shared   # Traits shared between all crates
 │   ├── y2023    # Solutions for year 2023
@@ -42,7 +51,7 @@ cargo run --release verify
 │   └── y2025    # Solutions for year 2025
 ├── inputs
 │   ├── 2023     # Put your 2023 inputs here
-│   ├── 2024     # Put your 2023 inputs here
+│   ├── 2024     # Put your 2024 inputs here
 │   └── 2025     # Put your 2025 inputs here
 └── template.rs  # Template file used as skeleton code for new day
 ```
