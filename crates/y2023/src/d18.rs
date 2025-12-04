@@ -2,6 +2,7 @@ use shared::Problem;
 
 use std::{
     cmp::{max, min},
+    ops::{Add, Sub},
     str::FromStr,
 };
 
@@ -34,6 +35,28 @@ impl FromStr for Dir {
 struct Point {
     x: i64,
     y: i64,
+}
+
+impl Add for Point {
+    type Output = Self;
+
+    fn add(self, other: Self) -> Self {
+        Self {
+            x: self.x + other.x,
+            y: self.y + other.y,
+        }
+    }
+}
+
+impl Sub for Point {
+    type Output = Self;
+
+    fn sub(self, other: Self) -> Self {
+        Self {
+            x: self.x - other.x,
+            y: self.y - other.y,
+        }
+    }
 }
 
 struct Instruction {
@@ -145,35 +168,12 @@ fn parse_input_2(contents: &str) -> Vec<Point> {
             .parse()
             .expect("Malformed instruction string '{instruction_string}'");
         match instruction.dir {
-            Dir::U => {
-                vertices.push(Point {
-                    x,
-                    y: y + instruction.count,
-                });
-                y += instruction.count;
-            }
-            Dir::D => {
-                vertices.push(Point {
-                    x,
-                    y: y - instruction.count,
-                });
-                y -= instruction.count;
-            }
-            Dir::L => {
-                vertices.push(Point {
-                    x: x - instruction.count,
-                    y,
-                });
-                x -= instruction.count;
-            }
-            Dir::R => {
-                vertices.push(Point {
-                    x: x + instruction.count,
-                    y,
-                });
-                x += instruction.count;
-            }
+            Dir::U => y += instruction.count,
+            Dir::D => y -= instruction.count,
+            Dir::L => x -= instruction.count,
+            Dir::R => x += instruction.count,
         }
+        vertices.push(Point { x, y });
     }
 
     // Make sure it begins and ends at (0, 0)
@@ -267,17 +267,142 @@ fn num_interior_points_on_horizontal(vertices: &[Point], y: i64) -> u64 {
     counter
 }
 
-fn compute_2(contents: &str) -> u64 {
-    let vertices = parse_input_2(contents);
+/// Possible ways to "corner", e.g. LeftUp means coming from Left, going Up
+#[derive(Debug, PartialEq, Eq)]
+enum DirectedTurn {
+    LeftUp,
+    LeftDown,
+    RightUp,
+    RightDown,
+    UpLeft,
+    UpRight,
+    DownLeft,
+    DownRight,
+}
 
-    let lower_bound = vertices.iter().map(|p| p.y).min().unwrap();
-    let upper_bound = vertices.iter().map(|p| p.y).max().unwrap();
-
-    let mut counter = 0;
-    for y in lower_bound..upper_bound + 1 {
-        counter += num_interior_points_on_horizontal(&vertices, y);
+fn corner_type(p0: &Point, p1: &Point, p2: &Point) -> DirectedTurn {
+    if p0.x < p1.x {
+        if p2.y > p1.y {
+            DirectedTurn::LeftUp
+        } else {
+            DirectedTurn::LeftDown
+        }
+    } else if p0.x > p1.x {
+        if p2.y > p1.y {
+            DirectedTurn::RightUp
+        } else {
+            DirectedTurn::RightDown
+        }
+    } else if p0.y > p1.y {
+        if p2.x < p1.x {
+            DirectedTurn::UpLeft
+        } else {
+            DirectedTurn::UpRight
+        }
+    } else {
+        if p2.x < p1.x {
+            DirectedTurn::DownLeft
+        } else {
+            DirectedTurn::DownRight
+        }
     }
-    counter
+}
+
+fn compute_2(contents: &str) -> u64 {
+    let mut vertices = parse_input_2(contents);
+    assert_eq!(vertices.first().unwrap(), &Point { x: 0, y: 0 });
+    assert_eq!(vertices.last().unwrap(), &Point { x: 0, y: 0 });
+
+    // "Correct" the placement of vertices. Assume that a vertex of (i, j)
+    // in vertices means that the snow plow filled the area from (i, j) to (i+1, j+1)
+    // on the coordinate grid. We first need to find the "handed-ness" of the polygon,
+    // i.e. is it defined clockwise vs. counterclockwise. There's probably a better
+    // way to do this, but I'm going to find the a lower left corner where I know
+    // the exterior is to the left/down, and see which way the vertices are aligned.
+
+    let mut low_left = *vertices.first().unwrap();
+    let mut low_left_index = 0;
+    for (i, p) in vertices.iter().enumerate() {
+        if p.x < low_left.x || (p.x == low_left.x && p.y < low_left.y) {
+            low_left = *p;
+            low_left_index = i;
+        }
+    }
+    let prev = if low_left_index == 0 {
+        vertices[vertices.len() - 2]
+    } else {
+        vertices[low_left_index - 1]
+    };
+    let next = vertices[(low_left_index + 1) % vertices.len()];
+    let is_clockwise = match corner_type(&prev, &low_left, &next) {
+        DirectedTurn::RightUp => true,
+        DirectedTurn::UpRight => false,
+        _ => panic!("Inconceivable!"),
+    };
+
+    // Since we'll be iterating over (prev, curr, next) triples, tack item number 2 to the end.
+    vertices.push(*vertices.iter().nth(1).unwrap());
+
+    // This could be done in place with a little bit of extra book-keeping, but
+    // I'm not going to worry about that...
+    let mut new_vertices: Vec<Point> = Vec::with_capacity(vertices.len());
+    for ((prev, curr), next) in vertices
+        .iter()
+        .zip(vertices.iter().skip(1))
+        .zip(vertices.iter().skip(2))
+    {
+        // This here is the secret sauce. We're basically figuring out how to
+        // translate the snow plow's (i, j) position, which actually means
+        // the snow plow is clearing the square defined by (i, j) -> (i+1, j+1),
+        // into an actual polygon's coordinate. The trick is that we need to adjust
+        // the (i, j) coordinate by different amounts depending on the type
+        // of corner we observed and the handed-ness of the polygon.
+        //
+        // E.g. a corner that looks like an L shape, with `prev` being right of the
+        // corner and `next` being above the corner, requires no adjustment for a
+        // clockwise-defined polygon, and an adjustment of +1, +1 for a
+        // counter-clockwise-defined polygon:
+        //
+        //      clockwise     counter-clockwise
+        //         ↑#               #↑
+        //         ↑#               #↑
+        //         ↑#               #+←←←
+        //         ↑#####           #####
+        //         +←←←←←
+        let adjustment = match (corner_type(prev, curr, next), is_clockwise) {
+            (DirectedTurn::LeftUp, true) => Point { x: 0, y: 1 },
+            (DirectedTurn::LeftUp, false) => Point { x: 1, y: 0 },
+            (DirectedTurn::LeftDown, true) => Point { x: 1, y: 1 },
+            (DirectedTurn::LeftDown, false) => Point { x: 0, y: 0 },
+            (DirectedTurn::RightUp, true) => Point { x: 0, y: 0 },
+            (DirectedTurn::RightUp, false) => Point { x: 1, y: 1 },
+            (DirectedTurn::RightDown, true) => Point { x: 1, y: 0 },
+            (DirectedTurn::RightDown, false) => Point { x: 0, y: 1 },
+            (DirectedTurn::UpLeft, true) => Point { x: 1, y: 0 },
+            (DirectedTurn::UpLeft, false) => Point { x: 0, y: 1 },
+            (DirectedTurn::UpRight, true) => Point { x: 1, y: 1 },
+            (DirectedTurn::UpRight, false) => Point { x: 0, y: 0 },
+            (DirectedTurn::DownLeft, true) => Point { x: 0, y: 0 },
+            (DirectedTurn::DownLeft, false) => Point { x: 1, y: 1 },
+            (DirectedTurn::DownRight, true) => Point { x: 0, y: 1 },
+            (DirectedTurn::DownRight, false) => Point { x: 1, y: 0 },
+        };
+        new_vertices.push(*curr + adjustment);
+    }
+    new_vertices.push(*new_vertices.first().unwrap());
+
+    // Finally, use a consequence of Stoke's theorem to compute the area.
+    // I definitely did not know this off the top of my head, I found it on Wikipedia.
+    // https://en.wikipedia.org/wiki/Shoelace_formula
+    let out = new_vertices
+        .iter()
+        .zip(new_vertices.iter().skip(1))
+        .map(|(p0, p1)| p0.x * p1.y - p0.y * p1.x)
+        .sum::<i64>()
+        .unsigned_abs()
+        / 2;
+
+    out
 }
 
 pub(crate) struct Day {}
@@ -297,5 +422,22 @@ impl Problem for Day {
     }
     fn expected2(&self) -> String {
         "42708339569950".to_string()
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_corner_type() {
+        assert_eq!(
+            corner_type(
+                &Point { x: 0, y: 0 },
+                &Point { x: 10, y: 0 },
+                &Point { x: 10, y: -10 }
+            ),
+            DirectedTurn::LeftDown
+        );
     }
 }

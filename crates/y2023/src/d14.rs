@@ -104,7 +104,7 @@ fn tilt_north_south(platform: &mut Platform, is_north: bool) {
                     next_location = if is_north {
                         row_index + 1
                     } else {
-                        row_index - 1
+                        row_index.wrapping_sub(1)
                     }
                 }
                 Rock::Round => {
@@ -113,7 +113,7 @@ fn tilt_north_south(platform: &mut Platform, is_north: bool) {
                     next_location = if is_north {
                         next_location + 1
                     } else {
-                        next_location - 1
+                        next_location.wrapping_sub(1)
                     };
                 }
             }
@@ -124,7 +124,6 @@ fn tilt_north_south(platform: &mut Platform, is_north: bool) {
 fn tilt_east_west(platform: &mut Platform, is_west: bool) {
     let num_cols = platform[0].len();
     for platform_row in platform.iter_mut() {
-        // for row_index in 0..num_rows {
         let mut next_location = if is_west { 0 } else { num_cols - 1 };
         for mut col_index in 0..num_cols {
             if !is_west {
@@ -136,7 +135,7 @@ fn tilt_east_west(platform: &mut Platform, is_west: bool) {
                     next_location = if is_west {
                         col_index + 1
                     } else {
-                        col_index - 1
+                        col_index.wrapping_sub(1)
                     }
                 }
                 Rock::Round => {
@@ -145,7 +144,7 @@ fn tilt_east_west(platform: &mut Platform, is_west: bool) {
                     next_location = if is_west {
                         next_location + 1
                     } else {
-                        next_location - 1
+                        next_location.wrapping_sub(1)
                     };
                 }
             }
