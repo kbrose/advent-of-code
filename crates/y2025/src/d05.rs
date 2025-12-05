@@ -26,10 +26,10 @@ fn compute_1(contents: &str) -> u64 {
     let (ranges, products) = parse_input(contents);
     let mut count = 0;
     for product in products {
-        'inner: for (lo, hi) in ranges.iter() {
+        for (lo, hi) in ranges.iter() {
             if lo <= &product && &product <= hi {
                 count += 1;
-                break 'inner;
+                break;
             }
         }
     }
