@@ -6,7 +6,7 @@ mod d01;
 mod d02;
 mod d03;
 mod d04;
-// mod d05;
+mod d05;
 // mod d06;
 // mod d07;
 // mod d08;
@@ -38,7 +38,7 @@ impl YearTrait for Year {
         problems.insert(2, Box::new(d02::Day {}));
         problems.insert(3, Box::new(d03::Day {}));
         problems.insert(4, Box::new(d04::Day {}));
-        // problems.insert(5, Box::new(d05::Day {}));
+        problems.insert(5, Box::new(d05::Day {}));
         // problems.insert(6, Box::new(d06::Day {}));
         // problems.insert(7, Box::new(d07::Day {}));
         // problems.insert(8, Box::new(d08::Day {}));
