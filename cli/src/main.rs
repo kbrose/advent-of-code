@@ -75,7 +75,7 @@ fn run_specific_day(args: Vec<String>) {
     problems
         .get(&day)
         .expect(&format!("Unsupported day {} for year {}", day, year))
-        .run();
+        .run(false); // TODO: Add show_times as a CLI param
 }
 
 fn new(args: Vec<String>) {
@@ -120,10 +120,8 @@ fn verify(args: Vec<String>) {
             for day in days {
                 let problem = problems.get(&day).unwrap();
                 // Time the test
-                let start = std::time::Instant::now();
-                let result = problem.verify();
-                let duration = start.elapsed();
-                problem_runtimes.push((duration, (year.year(), day)));
+                let (result, dur1, dur2) = problem.verify();
+                problem_runtimes.push((dur1 + dur2, dur1, dur2, (year.year(), day)));
                 if result {
                     print!("| ");
                 } else {
@@ -136,10 +134,12 @@ fn verify(args: Vec<String>) {
         println!("\nSlowest runtimes:");
         problem_runtimes.sort();
         for n in 0..5 {
-            if let Some((duration, (year, day))) = problem_runtimes.iter().nth_back(n) {
+            if let Some((duration, dur1, dur2, (year, day))) = problem_runtimes.iter().nth_back(n) {
                 println!(
-                    "y{year} d{day:0>2} took {:.3}s to run.",
-                    duration.as_secs_f32()
+                    "y{year} d{day:0>2} took {:.3}s to run ({:.4}s + {:.4}s).",
+                    duration.as_secs_f32(),
+                    dur1.as_secs_f32(),
+                    dur2.as_secs_f32()
                 );
             }
         }

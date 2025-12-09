@@ -1,8 +1,12 @@
+use std::time::Duration;
+
 struct ComputedValues {
     expected1: String,
     out1: String,
+    timing1: Duration,
     expected2: String,
     out2: String,
+    timing2: Duration,
 }
 
 pub trait Problem {
@@ -56,51 +60,70 @@ pub trait Problem {
         let contents = std::fs::read_to_string(input_file.clone())
             .expect(&format!("Trouble reading file {}", input_file));
 
+        // Add timings
         let expected1 = self.expected1();
+        let start = std::time::Instant::now();
         let out1 = self.solve1(&contents);
+        let timing1 = start.elapsed();
 
         let expected2 = self.expected2();
+        let start = std::time::Instant::now();
         let out2 = self.solve2(&contents);
+        let timing2 = start.elapsed();
 
         ComputedValues {
             expected1,
             out1,
+            timing1,
             expected2,
             out2,
+            timing2,
         }
     }
 
     /// Run parts 1 and 2 in an interactive (i.e. printing) way.
-    fn run(&self) {
+    fn run(&self, show_times: bool) {
         let ComputedValues {
             expected1,
             out1,
+            timing1,
             expected2,
             out2,
+            timing2,
         } = self.get_all_computed_values();
 
         if expected1 != out1 {
             eprintln!("WARNING: Actual part 1 output {out1} != expected output {expected1}");
         }
-        println!("part 1: {out1}");
+        if show_times {
+            println!("part 1: {out1} ({timing1:?})");
+        } else {
+            println!("part 1: {out1}");
+        }
 
         if expected2 != out2 {
             eprintln!("WARNING: Actual part 2 output {out2} != expected output {expected2}");
         }
         if out2 != "TODO".to_string() {
-            println!("part 2: {out2}");
+            if show_times {
+                println!("part 2: {out2} ({timing2:?})");
+            } else {
+                println!("part 2: {out2}");
+            }
         }
     }
 
     /// Test that parts 1 and 2 both output their expected values.
-    fn verify(&self) -> bool {
+    fn verify(&self) -> (bool, Duration, Duration) {
         let ComputedValues {
             expected1,
             out1,
+            timing1,
             expected2,
             out2,
+            timing2,
         } = self.get_all_computed_values();
 
-        out1 == expected1 && out2 == expected2
+        (out1 == expected1 && out2 == expected2, timing1, timing2)
     }
 }
