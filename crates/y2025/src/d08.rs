@@ -1,4 +1,8 @@
-use std::{collections::HashSet, str::FromStr};
+use std::{
+    cmp::Reverse,
+    collections::{BinaryHeap, HashSet},
+    str::FromStr,
+};
 
 use shared::Problem;
 
@@ -57,18 +61,17 @@ fn parse_input(contents: &str) -> Vec<Node> {
 fn compute_1(contents: &str) -> u64 {
     let nodes = parse_input(contents);
     let mut edges = vec![vec![false; nodes.len()]; nodes.len()];
-    let mut distances: Vec<(u64, usize, usize)> = Vec::with_capacity(nodes.len().pow(2));
+    let mut distances: BinaryHeap<Reverse<(u64, usize, usize)>> =
+        BinaryHeap::with_capacity(nodes.len().pow(2));
     for (i, n0) in nodes.iter().enumerate() {
-        for (j, n1) in nodes.iter().enumerate().skip(i) {
-            if i != j {
-                distances.push((n0.dist_squared(n1), i, j));
-            }
+        for (j, n1) in nodes.iter().enumerate().skip(i + 1) {
+            distances.push(Reverse((n0.dist_squared(n1), i, j)));
         }
     }
-    distances.sort_unstable();
-    for i in 0..1000 {
-        edges[distances[i].1][distances[i].2] = true;
-        edges[distances[i].2][distances[i].1] = true;
+    for _ in 0..1000 {
+        let Reverse((_, n0, n1)) = distances.pop().unwrap();
+        edges[n0][n1] = true;
+        edges[n1][n0] = true;
     }
     let mut connected_component_sizes: Vec<u64> = Vec::new();
     let mut visited_overall: HashSet<usize> = HashSet::new();
@@ -110,21 +113,18 @@ fn compute_1(contents: &str) -> u64 {
 fn compute_2(contents: &str) -> u64 {
     let nodes = parse_input(contents);
 
-    let mut distances: Vec<(u64, usize, usize)> = Vec::with_capacity(nodes.len().pow(2));
+    let mut distances: BinaryHeap<Reverse<(u64, usize, usize)>> =
+        BinaryHeap::with_capacity(nodes.len().pow(2));
     for (i, n0) in nodes.iter().enumerate() {
-        for (j, n1) in nodes.iter().enumerate().skip(i) {
-            if i != j {
-                distances.push((n0.dist_squared(n1), i, j));
-            }
+        for (j, n1) in nodes.iter().enumerate().skip(i + 1) {
+            distances.push(Reverse((n0.dist_squared(n1), i, j)));
         }
     }
-    distances.sort_unstable();
-    distances.reverse();
 
     let mut connected_component_id = Vec::from_iter(0..nodes.len());
 
     let (final_node_i, final_node_j) = loop {
-        let (_, i, j) = distances.pop().expect("Impossible!");
+        let Reverse((_, i, j)) = distances.pop().expect("Impossible!");
         let component_i = connected_component_id[i];
         let component_j = connected_component_id[j];
         if component_i != component_j {
