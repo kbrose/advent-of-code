@@ -147,16 +147,17 @@ fn verify(args: Vec<String>) {
         }
         if !failed.is_empty() {
             print!("{} problems failed verification! ", failed.len());
+            let num_failures_to_show = 5;
             print!(
                 "{}",
                 failed
                     .iter()
-                    .take(5)
+                    .take(num_failures_to_show)
                     .map(|(year, day)| format!("y{year} d{day}"))
                     .collect::<Vec<String>>()
                     .join(", ")
             );
-            if failed.len() > 5 {
+            if failed.len() > num_failures_to_show {
                 print!(", ...");
             }
             println!("");
