@@ -110,6 +110,7 @@ fn verify(args: Vec<String>) {
             eprintln!("Unknown year {requested_year:?} was requested");
             return;
         }
+        let mut failed = vec![];
         println!("                       1 1 1 1 1 1 1 1 1 1 2 2 2 2 2 2");
         println!("     1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5");
         for year in years {
@@ -126,6 +127,7 @@ fn verify(args: Vec<String>) {
                     print!("| ");
                 } else {
                     print!("X ");
+                    failed.push((year.year(), day));
                 }
                 std::io::stdout().flush().unwrap();
             }
@@ -142,6 +144,22 @@ fn verify(args: Vec<String>) {
                     dur2.as_secs_f32()
                 );
             }
+        }
+        if !failed.is_empty() {
+            print!("{} problems failed verification! ", failed.len());
+            print!(
+                "{}",
+                failed
+                    .iter()
+                    .take(5)
+                    .map(|(year, day)| format!("y{year} d{day}"))
+                    .collect::<Vec<String>>()
+                    .join(", ")
+            );
+            if failed.len() > 5 {
+                print!(", ...");
+            }
+            println!("");
         }
     } else {
         usage(args);
