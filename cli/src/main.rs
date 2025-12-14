@@ -146,7 +146,11 @@ fn verify(args: Vec<String>) {
             }
         }
         if !failed.is_empty() {
-            print!("{} problems failed verification! ", failed.len());
+            print!(
+                "{} problem{} failed verification! ",
+                failed.len(),
+                if failed.len() > 1 { "s" } else { "" }
+            );
             let num_failures_to_show = 5;
             print!(
                 "{}",
