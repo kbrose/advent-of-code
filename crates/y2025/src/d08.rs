@@ -110,6 +110,32 @@ fn compute_1(contents: &str) -> u64 {
         .unwrap()
 }
 
+#[derive(Clone, Debug)]
+struct SpanningTreeNode {
+    parent: Option<usize>,
+    subtree_depth: usize,
+}
+
+impl SpanningTreeNode {
+    fn new() -> Self {
+        SpanningTreeNode {
+            parent: None,
+            subtree_depth: 1,
+        }
+    }
+}
+
+fn spanning_tree_root_index(mut curr_node_index: usize, trees: &[SpanningTreeNode]) -> usize {
+    while let SpanningTreeNode {
+        parent: Some(new_index),
+        subtree_depth: _,
+    } = trees[curr_node_index]
+    {
+        curr_node_index = new_index;
+    }
+    curr_node_index
+}
+
 fn compute_2(contents: &str) -> u64 {
     let nodes = parse_input(contents);
 
@@ -121,26 +147,36 @@ fn compute_2(contents: &str) -> u64 {
         }
     }
 
-    let mut connected_component_id = Vec::from_iter(0..nodes.len());
+    let mut spanning_trees = vec![SpanningTreeNode::new(); nodes.len()];
 
     let (final_node_i, final_node_j) = loop {
         let Reverse((_, i, j)) = distances.pop().expect("Impossible!");
-        let component_i = connected_component_id[i];
-        let component_j = connected_component_id[j];
-        if component_i != component_j {
-            for k in 0..connected_component_id.len() {
-                if connected_component_id[k] == component_i {
-                    connected_component_id[k] = component_j;
-                }
+
+        let root_i = spanning_tree_root_index(i, &spanning_trees);
+        let root_j = spanning_tree_root_index(j, &spanning_trees);
+        if root_i != root_j {
+            let (root_smaller, root_bigger) =
+                if spanning_trees[root_i].subtree_depth < spanning_trees[root_j].subtree_depth {
+                    (root_i, root_j)
+                } else {
+                    (root_j, root_i)
+                };
+
+            spanning_trees[root_smaller].parent = Some(root_bigger);
+            spanning_trees[root_bigger].subtree_depth = std::cmp::max(
+                spanning_trees[root_bigger].subtree_depth,
+                spanning_trees[root_smaller].subtree_depth + 1,
+            );
+
+            if spanning_trees
+                .iter()
+                .filter(|tree_node| tree_node.parent.is_none())
+                .skip(1)
+                .all(|_| false)
+            {
+                break (nodes[i], nodes[j]);
             }
-        }
-        if connected_component_id
-            .iter()
-            .skip(1)
-            .all(|c| c == &connected_component_id[0])
-        {
-            break (nodes[i], nodes[j]);
-        }
+        };
     };
 
     final_node_i.x * final_node_j.x
