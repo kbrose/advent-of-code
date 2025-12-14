@@ -95,10 +95,7 @@ fn compute_1(contents: &str) -> u64 {
 }
 
 mod frac {
-    use std::{
-        num::NonZeroU64,
-        ops::{DivAssign, Mul, Sub, SubAssign},
-    };
+    use std::ops::{DivAssign, Mul, Sub, SubAssign};
 
     // Note: since we're going to be guaranteeing a specific format
     // (reduced form, negative numerator if needed), then deriving
@@ -106,7 +103,7 @@ mod frac {
     #[derive(Clone, Copy, Debug, PartialEq, Eq)]
     pub struct Fraction {
         num: i64,
-        den: NonZeroU64,
+        den: i64,
     }
 
     impl Fraction {
@@ -114,27 +111,28 @@ mod frac {
             if den == 0 {
                 None
             } else {
-                let is_neg = (num < 0) ^ (den < 0);
-                let mut num = num.unsigned_abs();
-                let mut den = den.unsigned_abs();
-
-                let gcd = compute_gcd(num, den);
-                num /= gcd;
-                den /= gcd;
-                Some(Fraction {
-                    num: if is_neg { -(num as i64) } else { num as i64 },
-                    // unwrap is safe: den already checked for == 0
-                    den: NonZeroU64::try_from(den).unwrap(),
-                })
+                Some(Fraction::new_unchecked(num, den))
             }
         }
 
-        pub fn new_from_int(num: i64) -> Fraction {
+        // Does not check for den == 0, beware!
+        #[inline(always)]
+        pub fn new_unchecked(mut num: i64, mut den: i64) -> Fraction {
+            let is_neg = (num < 0) ^ (den < 0);
+            num = num.abs();
+            den = den.abs();
+
+            let gcd = compute_gcd(num, den);
+            num /= gcd;
+            den /= gcd;
             Fraction {
-                num,
-                // unwrap is safe: den is non-zero
-                den: NonZeroU64::try_from(1_u64).unwrap(),
+                num: if is_neg { -(num) } else { num },
+                den: den,
             }
+        }
+
+        pub fn whole_number(num: i64) -> Fraction {
+            Fraction { num, den: 1 }
         }
 
         pub fn is_zero(&self) -> bool {
@@ -146,11 +144,7 @@ mod frac {
         }
 
         pub fn integral(&self) -> Option<i64> {
-            if self.den == NonZeroU64::try_from(1_u64).unwrap() {
-                Some(self.num)
-            } else {
-                None
-            }
+            if self.den == 1 { Some(self.num) } else { None }
         }
     }
 
@@ -158,17 +152,14 @@ mod frac {
         type Output = Fraction;
 
         fn mul(self, rhs: Self) -> Self::Output {
-            Fraction::new(self.num * rhs.num, (self.den.get() * rhs.den.get()) as i64).unwrap()
+            Fraction::new_unchecked(self.num * rhs.num, self.den * rhs.den)
         }
     }
 
     impl DivAssign for Fraction {
         fn div_assign(&mut self, rhs: Self) {
             // (a/b) / (c/d) = (a/b) * (d/c) = (ad)/(bc)
-            if let Some(f) = Fraction::new(
-                self.num * rhs.den.get() as i64,
-                self.den.get() as i64 * rhs.num,
-            ) {
+            if let Some(f) = Fraction::new(self.num * rhs.den, self.den * rhs.num) {
                 self.num = f.num;
                 self.den = f.den;
             } else {
@@ -181,29 +172,26 @@ mod frac {
         type Output = Fraction;
 
         fn sub(self, rhs: Self) -> Self::Output {
-            let lcm = compute_lcm(self.den.get(), rhs.den.get());
-            let num1 = self.num * ((lcm / self.den.get()) as i64);
-            let num2 = rhs.num * ((lcm / rhs.den.get()) as i64);
-            Fraction::new(num1 - num2, lcm as i64).unwrap()
+            Fraction::new_unchecked(self.num * rhs.den - rhs.num * self.den, self.den * rhs.den)
         }
     }
 
     impl SubAssign for Fraction {
         fn sub_assign(&mut self, rhs: Self) {
-            let lcm = compute_lcm(self.den.get(), rhs.den.get());
-            let num = self.num * ((lcm / self.den.get()) as i64)
-                - rhs.num * ((lcm / rhs.den.get()) as i64);
-            let den = lcm;
-            let gcd = compute_gcd(num.unsigned_abs(), den);
-            self.num = num / (gcd as i64);
-            self.den = (den / gcd).try_into().unwrap();
+            let f = Fraction::new_unchecked(
+                self.num * rhs.den - rhs.num * self.den,
+                self.den * rhs.den,
+            );
+            self.num = f.num;
+            self.den = f.den;
         }
     }
 
     /// Implement Euclid's algorithm
     /// https://en.wikipedia.org/wiki/Euclidean_algorithm
     /// Props to 2023 day 8
-    fn compute_gcd(a: u64, b: u64) -> u64 {
+    /// Note: assumes a and b are non-negative
+    fn compute_gcd(a: i64, b: i64) -> i64 {
         if a == 0 && b == 0 {
             return 0;
         }
@@ -216,31 +204,30 @@ mod frac {
         a
     }
 
-    fn compute_lcm(a: u64, b: u64) -> u64 {
-        if a == 0 && b == 0 {
-            0
-        } else {
-            a / compute_gcd(a, b) * b
-        }
-    }
-
     #[cfg(test)]
     mod tests {
         use super::*;
 
         #[test]
+        fn test_gcd() {
+            assert_eq!(compute_gcd(1, 1), 1);
+            assert_eq!(compute_gcd(2, 2), 2);
+            assert_eq!(compute_gcd(4, 2), 2);
+        }
+
+        #[test]
         fn test_new() {
             let f = Fraction::new(0, 1).unwrap();
             assert_eq!(f.num, 0);
-            assert_eq!(f.den, NonZeroU64::try_from(1).unwrap());
+            assert_eq!(f.den, 1);
 
             let f = Fraction::new(2, 4).unwrap();
             assert_eq!(f.num, 1);
-            assert_eq!(f.den, NonZeroU64::try_from(2).unwrap());
+            assert_eq!(f.den, 2);
 
             let f = Fraction::new(-2, -4).unwrap();
             assert_eq!(f.num, 1);
-            assert_eq!(f.den, NonZeroU64::try_from(2).unwrap());
+            assert_eq!(f.den, 2);
 
             assert_eq!(Fraction::new(2, -4), Fraction::new(-1, 2));
             assert_eq!(Fraction::new(100, 200), Fraction::new(1, 2));
@@ -285,8 +272,8 @@ mod frac {
                 }
             }
 
-            assert_eq!(f1 * f2, Fraction::new_from_int(0));
-            assert_eq!(f1 * f3, Fraction::new_from_int(0));
+            assert_eq!(f1 * f2, Fraction::whole_number(0));
+            assert_eq!(f1 * f3, Fraction::whole_number(0));
 
             assert_eq!(f2 * f3, Fraction::new(-1, 200).unwrap());
 
@@ -312,11 +299,11 @@ mod frac {
 
             let mut f = f2.clone();
             f /= f2;
-            assert_eq!(f, Fraction::new_from_int(1));
+            assert_eq!(f, Fraction::whole_number(1));
 
             let mut f = f3.clone();
             f /= f3;
-            assert_eq!(f, Fraction::new_from_int(1));
+            assert_eq!(f, Fraction::whole_number(1));
 
             let mut f = f2.clone();
             f /= f3;
@@ -376,9 +363,9 @@ mod frac {
             f -= f4;
             assert_eq!(f, Fraction::new(-93, 700).unwrap());
 
-            let mut f = Fraction::new_from_int(-10);
-            f -= Fraction::new_from_int(12) * Fraction::new_from_int(0);
-            assert_eq!(f, Fraction::new_from_int(-10));
+            let mut f = Fraction::whole_number(-10);
+            f -= Fraction::whole_number(12) * Fraction::whole_number(0);
+            assert_eq!(f, Fraction::whole_number(-10));
         }
     }
 }
@@ -395,16 +382,16 @@ struct Matrix {
 impl Matrix {
     fn new_from_machine(machine: Machine) -> Self {
         let mut data = vec![
-            vec![Fraction::new_from_int(0); machine.buttons.len() + 1];
+            vec![Fraction::whole_number(0); machine.buttons.len() + 1];
             machine.joltages.len()
         ];
         for (i, button) in machine.buttons.iter().enumerate() {
             for j in button {
-                data[*j][i] = Fraction::new_from_int(1);
+                data[*j][i] = Fraction::whole_number(1);
             }
         }
         for (i, joltage) in machine.joltages.into_iter().enumerate() {
-            data[i][machine.buttons.len()] = Fraction::new_from_int(joltage as i64);
+            data[i][machine.buttons.len()] = Fraction::whole_number(joltage as i64);
         }
         Self {
             rows: data.len(),
@@ -481,7 +468,7 @@ impl Matrix {
                 //     Fraction::new_from_int(*free_value as i64),
                 //     row[*coefficient_idx]
                 // );
-                pushes -= Fraction::new_from_int(*free_value as i64) * row[*coefficient_idx];
+                pushes -= Fraction::whole_number(*free_value as i64) * row[*coefficient_idx];
                 // println!("{pushes:?}");
             }
             if pushes.is_negative() {
