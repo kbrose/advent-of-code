@@ -43,6 +43,7 @@ impl Present {
         }
         Present::new(empties)
     }
+    #[allow(unused)]
     fn show(&self) {
         for i in 0..3 {
             for j in 0..3 {
@@ -145,13 +146,13 @@ fn grid_is_satisfiable(
     }
     // If the required area of presents we have left to place is more than the
     // area we have left to place in, it is not satisfiable
-    if required_presents
+    let required_area = required_presents
         .iter()
         .zip(present_areas.iter())
         .map(|(required_count, area)| *required_count as usize * area)
-        .sum::<usize>()
-        > (grid[0].len() - curr_j) * grid.len() + (grid.len() - curr_i)
-    {
+        .sum::<usize>();
+    let available_area = (grid[0].len() - (curr_j + 1)) * grid.len() + (grid.len() - curr_i);
+    if required_area > available_area {
         return false;
     }
     if curr_i + 2 >= grid.len() {
@@ -161,7 +162,7 @@ fn grid_is_satisfiable(
             required_presents,
             grid,
             0,
-            curr_j + 1,
+            curr_j + 3,
         );
     }
     for present_index in 0..required_presents.len() {
@@ -172,48 +173,43 @@ fn grid_is_satisfiable(
                 if i_start + 2 >= grid.len() {
                     break;
                 }
-                for j_start in curr_j..curr_j + 3 {
-                    if j_start + 2 >= grid[0].len() {
-                        break;
+                let j_start = curr_j;
+                'present_loop: for present in present_options[present_index].iter() {
+                    // Loop once to check if the present is placeable
+                    for i in i_start..i_start + 3 {
+                        for j in j_start..j_start + 3 {
+                            if grid[i][j] && !present.empties.contains(&(i - i_start, j - j_start))
+                            {
+                                continue 'present_loop;
+                            }
+                        }
                     }
-                    'present_loop: for present in present_options[present_index].iter() {
-                        // Loop once to check if the present is placeable
-                        for i in i_start..i_start + 3 {
-                            for j in j_start..j_start + 3 {
-                                if grid[i][j]
-                                    && !present.empties.contains(&(i - i_start, j - j_start))
-                                {
-                                    continue 'present_loop;
-                                }
+                    // Loop a second time to actually place the present
+                    for i in i_start..i_start + 3 {
+                        for j in j_start..j_start + 3 {
+                            if !present.empties.contains(&(i - i_start, j - j_start)) {
+                                grid[i][j] = true;
                             }
                         }
-                        // Loop a second time to actually place the present
-                        for i in i_start..i_start + 3 {
-                            for j in j_start..j_start + 3 {
-                                if !present.empties.contains(&(i - i_start, j - j_start)) {
-                                    grid[i][j] = true;
-                                }
-                            }
-                        }
-                        // show_grid(grid);
-                        required_presents[present_index] -= 1;
-                        if grid_is_satisfiable(
-                            present_options,
-                            present_areas,
-                            required_presents,
-                            grid,
-                            i_start + 1,
-                            curr_j,
-                        ) {
-                            return true;
-                        }
-                        // That was a dead end, reset back to state before placing present
-                        required_presents[present_index] += 1;
-                        for i in i_start..i_start + 3 {
-                            for j in j_start..j_start + 3 {
-                                if !present.empties.contains(&(i - i_start, j - j_start)) {
-                                    grid[i][j] = false;
-                                }
+                    }
+                    // show_grid(grid);
+                    required_presents[present_index] -= 1;
+                    if grid_is_satisfiable(
+                        present_options,
+                        present_areas,
+                        required_presents,
+                        grid,
+                        i_start + 1,
+                        curr_j,
+                    ) {
+                        return true;
+                    }
+                    // That was a dead end, reset back to state before placing present
+                    required_presents[present_index] += 1;
+                    for i in i_start..i_start + 3 {
+                        for j in j_start..j_start + 3 {
+                            if !present.empties.contains(&(i - i_start, j - j_start)) {
+                                grid[i][j] = false;
                             }
                         }
                     }
@@ -221,7 +217,14 @@ fn grid_is_satisfiable(
             }
         }
     }
-    false
+    grid_is_satisfiable(
+        present_options,
+        present_areas,
+        required_presents,
+        grid,
+        0,
+        curr_j + 3,
+    )
 }
 
 fn compute_1(contents: &str) -> u64 {
@@ -231,27 +234,32 @@ fn compute_1(contents: &str) -> u64 {
         .map(|options| 9 - options[0].empties.len())
         .collect();
     let mut total = 0;
-    for (i, mut grid_info) in grids.into_iter().enumerate() {
-        let mut grid = vec![vec![false; grid_info.shape.1]; grid_info.shape.0];
-        if grid_is_satisfiable(
-            &present_options,
-            &present_areas,
-            &mut grid_info.required_presents,
-            &mut grid,
-            0,
-            0,
-        ) {
-            println!("{i: >4} satisfiable");
+    for mut grid_info in grids.into_iter() {
+        if grid_info.shape.0 / 3 * grid_info.shape.1 / 3
+            >= grid_info
+                .required_presents
+                .iter()
+                .map(|x| *x as usize)
+                .sum::<usize>()
+            && false
+        {
+            // Trivial case
             total += 1;
+        } else {
+            let mut grid = vec![vec![false; grid_info.shape.1]; grid_info.shape.0];
+            if grid_is_satisfiable(
+                &present_options,
+                &present_areas,
+                &mut grid_info.required_presents,
+                &mut grid,
+                0,
+                0,
+            ) {
+                total += 1;
+            }
         }
-        println!("{i: >4} not satisfiable");
     }
     total
-}
-
-fn compute_2(contents: &str) -> u64 {
-    let x = parse_input(contents);
-    todo!()
 }
 
 pub(crate) struct Day {}
@@ -263,15 +271,15 @@ impl Problem for Day {
     fn solve1(&self, contents: &str) -> String {
         format!("{}", compute_1(contents))
     }
-    // fn expected1(&self) -> String {
-    //     "abc".to_string()
-    // }
-    // fn solve2(&self, contents: &str) -> String {
-    //     format!("{}", compute_2(contents))
-    // }
-    // fn expected2(&self) -> String {
-    //     "xyz".to_string()
-    // }
+    fn expected1(&self) -> String {
+        "414".to_string()
+    }
+    fn solve2(&self, _: &str) -> String {
+        "Merry Christmas!".to_string()
+    }
+    fn expected2(&self) -> String {
+        "Merry Christmas!".to_string()
+    }
 }
 
 #[cfg(test)]
