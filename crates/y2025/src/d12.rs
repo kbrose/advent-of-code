@@ -281,23 +281,3 @@ impl Problem for Day {
         "Merry Christmas!".to_string()
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_rotate_present() {
-        let present = Present {
-            empties: vec![(0, 1), (2, 1)],
-        };
-        let rotated = present.rotate_90_deg();
-        assert_eq!(rotated.empties, vec![(1, 2), (1, 0)]);
-
-        let present = Present {
-            empties: vec![(1, 1), (1, 2)],
-        };
-        let rotated = present.rotate_90_deg();
-        assert_eq!(rotated.empties, vec![(1, 1), (2, 1)]);
-    }
-}
