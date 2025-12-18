@@ -212,48 +212,41 @@ fn parse_input(contents: &str, slopes_are_slippery: bool) -> Graph {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
-struct Path {
-    curr: Id,
-    visited: HashSet<Id>,
-    dist: usize,
+fn dfs(graph: &Graph, visited: &mut HashSet<Id>, curr_node: Id, curr_len: usize) -> Option<usize> {
+    if curr_node == graph.end_id {
+        Some(curr_len)
+    } else {
+        visited.insert(curr_node);
+        let mut curr_max = None;
+        for edge in graph.nodes[&curr_node].edges.iter() {
+            if !visited.contains(&edge.dest) {
+                if let Some(dist) = dfs(graph, visited, edge.dest, curr_len + edge.dist) {
+                    match curr_max {
+                        None => {
+                            curr_max = Some(dist);
+                        }
+                        Some(n) => {
+                            if dist > n {
+                                curr_max = Some(dist)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        visited.remove(&curr_node);
+        curr_max
+    }
 }
 
 fn find_longest_path(graph: Graph) -> usize {
-    let mut possible_paths: Vec<Path> = vec![Path {
-        curr: graph.start_id,
-        visited: HashSet::new(),
-        dist: 0,
-    }];
-    let mut longest_path_dist: usize = 0;
-    while let Some(mut path) = possible_paths.pop() {
-        if path.curr == graph.end_id {
-            longest_path_dist = std::cmp::max(longest_path_dist, path.dist);
-        }
-        path.visited.insert(path.curr);
-        let mut edges: Vec<&Edge> = graph.nodes[&path.curr]
-            .edges
-            .iter()
-            .filter(|edge| !path.visited.contains(&edge.dest))
-            .collect();
-        // Small optimization: We'll reuse `path` on the final edge rather than cloning it.
-        // Saves about 8% runtime on part 2.
-        // NOTE: edges.len() - 1 may underflow, but that's fine b/c in
-        //       that case the iterator is empty anyway
-        for edge in edges.iter().take(edges.len().wrapping_sub(1)) {
-            let mut new_path = path.clone();
-            new_path.curr = edge.dest;
-            new_path.dist += edge.dist;
-            possible_paths.push(new_path);
-        }
-        if let Some(edge) = edges.pop() {
-            path.curr = edge.dest;
-            path.dist += edge.dist;
-            possible_paths.push(path);
-        }
-    }
-
-    longest_path_dist
+    dfs(
+        &graph,
+        &mut HashSet::with_capacity(graph.nodes.len()),
+        graph.start_id,
+        0,
+    )
+    .expect("No path found between start and end")
 }
 
 fn compute_1(contents: &str) -> usize {
