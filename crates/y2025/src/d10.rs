@@ -190,12 +190,11 @@ mod frac {
     /// Implement Euclid's algorithm
     /// https://en.wikipedia.org/wiki/Euclidean_algorithm
     /// Props to 2023 day 8
-    /// Note: assumes a and b are non-negative
-    fn compute_gcd(a: i64, b: i64) -> i64 {
-        if a == 0 && b == 0 {
-            return 0;
+    /// Note: assumes a and b are non-negative, and that at least one is non-zero
+    fn compute_gcd(mut a: i64, mut b: i64) -> i64 {
+        if b < a {
+            (a, b) = (b, a);
         }
-        let (mut a, mut b) = { if b < a { (b, a) } else { (a, b) } };
         while b != 0 {
             let prev = b;
             b = a % b;
@@ -401,18 +400,6 @@ impl Matrix {
         }
     }
 
-    // #[allow(unused)]
-    // fn show(&self) {
-    //     for row in self.data.iter() {
-    //         print!("[ ");
-    //         for col in row {
-    //             print!("{: >5.1} ", col);
-    //         }
-    //         println!("]");
-    //     }
-    //     println!("");
-    // }
-
     // https://rosettacode.org/wiki/Reduced_row_echelon_form#Python
     fn reduced_row_echelon_form(&mut self) {
         let mut lead = 0;
@@ -442,12 +429,9 @@ impl Matrix {
             for i in 0..self.rows {
                 if i != r {
                     let lv = self.data[i][lead];
-                    // This check is unnecessary
-                    // if !lv.is_zero() {
                     for j in 0..self.cols {
                         self.data[i][j] = self.data[i][j] - lv * self.data[r][j];
                     }
-                    // }
                 }
             }
             lead += 1;
@@ -463,13 +447,7 @@ impl Matrix {
             // solution is consistent with our needs.
             let mut pushes = row[self.cols - 1];
             for (free_value, coefficient_idx) in free_values.iter().zip(self.free.iter()) {
-                // print!(
-                //     "{pushes:?} -= {:?} * {:?} --> ",
-                //     Fraction::new_from_int(*free_value as i64),
-                //     row[*coefficient_idx]
-                // );
                 pushes -= Fraction::whole_number(*free_value as i64) * row[*coefficient_idx];
-                // println!("{pushes:?}");
             }
             if pushes.is_negative() {
                 return None;
